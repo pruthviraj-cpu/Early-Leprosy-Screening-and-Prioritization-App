@@ -1,0 +1,65 @@
+# =====================
+# OS Files
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# IDE / Editor
+# =====================
+.vscode/
+.idea/
+*.iml
+
+# =====================
+# Flutter
+# =====================
+.dart_tool/
+.packages
+build/
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+
+# =====================
+# Node / Express
+# =====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =====================
+# Environment variables
+# =====================
+.env
+.env.*
+
+# =====================
+# Databases / Cache
+# =====================
+*.db
+*.sqlite
+*.hive
+
+# =====================
+# Logs
+# =====================
+logs/
+*.log
+
+# =====================
+# ML Models (large)
+# =====================
+*.h5
+*.pkl
+*.onnx

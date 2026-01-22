@@ -3,7 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './routes/auth.routes.js'; // Add .js extension
-
+import profileRoutes from './routes/profile.routes.js';
+import chatRoutes from './routes/chat.routes.js';
 const app = express();
 
 // Middleware
@@ -17,8 +18,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes - Make sure authRoutes is a router
+
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api', chatRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -50,7 +50,7 @@ class _MyRegisterState extends State<MyRegister> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/auth/signup'),
+        Uri.parse('https://skin-buddy.onrender.com/api/auth/signup'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "email": email,

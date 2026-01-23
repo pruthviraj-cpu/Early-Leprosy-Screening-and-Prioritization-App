@@ -18,5 +18,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ Supabase connected`);
-  console.log(`✅ Health check: http://localhost:${PORT}/health`);
+  console.log(`✅ Health check: http://0.0.0.0:${PORT}/health`);
 });

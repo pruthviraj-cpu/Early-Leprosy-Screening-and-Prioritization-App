@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'secure_storage.dart';
 
 class ApiService {
-  static const String baseUrl = "http://localhost:5000/api";
+  static const String baseUrl = "https://skin-buddy.onrender.com/api";
 
   static Future<String> sendChat(String message) async {
   final token = await SecureStorage.getToken();

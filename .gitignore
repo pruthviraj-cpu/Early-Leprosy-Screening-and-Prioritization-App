@@ -11,6 +11,9 @@ Thumbs.db
 .idea/
 *.iml
 
+*Zone.Identifier
+
+
 # =====================
 # Flutter
 # =====================

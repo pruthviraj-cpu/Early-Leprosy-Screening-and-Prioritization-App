@@ -43,7 +43,7 @@ class _MyLoginState extends State<MyLogin> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/auth/login'),
+        Uri.parse('https://skin-buddy.onrender.com/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "email": email,

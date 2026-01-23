@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:frontend/services/secure_storage.dart';
 
 class MyLogin extends StatefulWidget {
-  const MyLogin({Key? key}) : super(key: key);
+  const MyLogin({super.key});
 
   @override
   State<MyLogin> createState() => _MyLoginState();
@@ -42,7 +43,7 @@ class _MyLoginState extends State<MyLogin> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:500/auth/login'),
+        Uri.parse('http://localhost:5000/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "email": email,
@@ -53,6 +54,10 @@ class _MyLoginState extends State<MyLogin> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        // 👇 SAVE TOKEN HERE
+        await SecureStorage.saveToken(data['token']);
+
+        // then navigate
         Navigator.pushReplacementNamed(context, 'home');
       } else {
         _showError(data['error'] ?? 'Login failed');

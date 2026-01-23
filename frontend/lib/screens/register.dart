@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class MyRegister extends StatefulWidget {
-  const MyRegister({Key? key}) : super(key: key);
+  const MyRegister({super.key});
 
   @override
   State<MyRegister> createState() => _MyRegisterState();
@@ -50,7 +50,7 @@ class _MyRegisterState extends State<MyRegister> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:500/auth/signup'),
+        Uri.parse('http://localhost:5000/api/auth/signup'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "email": email,

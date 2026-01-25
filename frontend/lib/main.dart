@@ -9,27 +9,24 @@ import 'screens/home.dart';
 import 'screens/login.dart';
 import 'screens/register.dart';
 import 'screens/chat.dart';
-import 'services/cache_service.dart';
+// import 'services/cache_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔹 Initialize Hive
   await Hive.initFlutter();
 
-  // 🔹 Register adapters
   Hive.registerAdapter(ChatMessageAdapter());
   Hive.registerAdapter(DiagnosisResultAdapter());
   Hive.registerAdapter(UserProfileAdapter());
 
-  // 🔹 Open boxes (THIS WAS MISSING)
-  await Hive.openBox<ChatMessage>('chats');
+  // 🔹 Only global boxes
   await Hive.openBox<UserProfile>('profile');
   await Hive.openBox<DiagnosisResult>('diagnosis');
-  await CacheService.init();
 
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/services/secure_storage.dart';
+import 'package:frontend/services/cache_service.dart';
 
 class MyLogin extends StatefulWidget {
   const MyLogin({super.key});
@@ -54,10 +55,14 @@ class _MyLoginState extends State<MyLogin> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // 👇 SAVE TOKEN HERE
         await SecureStorage.saveToken(data['token']);
 
-        // then navigate
+        // 🔹 GET USER ID
+        final userId = data['user']['id'];
+
+        // 🔹 OPEN USER-SPECIFIC CHAT BOX
+        await CacheService.openUserChatBox(userId);
+
         Navigator.pushReplacementNamed(context, 'home');
       } else {
         _showError(data['error'] ?? 'Login failed');

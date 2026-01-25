@@ -1,46 +1,35 @@
 import 'package:hive/hive.dart';
 import '../models/chat_message.dart';
-// import '../models/user_profile.dart';
-// import '../models/diagnosis_result.dart';
 
 class CacheService {
-  // static final chatBox = Hive.box<ChatMessage>('chats');
-  // static final profileBox = Hive.box<UserProfile>('profile');
-  // static final diagnosisBox = Hive.box<DiagnosisResult>('diagnosis');
+  static Box<ChatMessage>? _chatBox;
 
-  // // 🔹 Chat
-  // static List<ChatMessage> getChats() => chatBox.values.toList();
+  /// 🔹 Call this AFTER login
+  static Future<void> openUserChatBox(String userId) async {
+    final boxName = 'chats_$userId';
 
-  // static Future<void> saveChat(ChatMessage chat) async {
-  //   await chatBox.put(chat.id, chat);
-  // }
-
-  // // 🔹 Profile
-  // static UserProfile? getProfile() =>
-  //     profileBox.isNotEmpty ? profileBox.getAt(0) : null;
-
-  // static Future<void> saveProfile(UserProfile profile) async {
-  //   await profileBox.clear();
-  //   await profileBox.add(profile);
-  // }
-
-  // // 🔹 Diagnosis
-  // static Future<void> saveDiagnosis(DiagnosisResult result) async {
-  //   await diagnosisBox.add(result);
-  // }
- static late Box<ChatMessage> _chatBox;
-
-  static Future<void> init() async {
-    _chatBox = Hive.box<ChatMessage>('chats');
+    if (Hive.isBoxOpen(boxName)) {
+      _chatBox = Hive.box<ChatMessage>(boxName);
+    } else {
+      _chatBox = await Hive.openBox<ChatMessage>(boxName);
+    }
   }
 
   static Future<void> saveMessage(ChatMessage msg) async {
-    await _chatBox.add(msg);
+    if (_chatBox == null) return;
+    await _chatBox!.add(msg);
   }
 
   static List<ChatMessage> getAllMessages() {
-  final messages = _chatBox.values.toList();
-  messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-  return messages;
-}
+    if (_chatBox == null) return [];
+    final messages = _chatBox!.values.toList();
+    messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return messages;
+  }
+
+  /// (Optional) On logout
+  static Future<void> closeChatBox() async {
+    await _chatBox?.close();
+    _chatBox = null;
+  }
 }

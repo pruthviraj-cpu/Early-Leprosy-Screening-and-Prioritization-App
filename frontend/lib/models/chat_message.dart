@@ -16,10 +16,14 @@ class ChatMessage extends HiveObject {
   @HiveField(3)
   DateTime createdAt;
 
+  @HiveField(4)
+  String syncStatus; // pending | synced | failed | sending
+
   ChatMessage({
     required this.id,
     required this.role,
     required this.message,
     required this.createdAt,
+    required this.syncStatus,
   });
 }

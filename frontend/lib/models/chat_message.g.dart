@@ -21,13 +21,14 @@ class ChatMessageAdapter extends TypeAdapter<ChatMessage> {
       role: fields[1] as String,
       message: fields[2] as String,
       createdAt: fields[3] as DateTime,
+      syncStatus: fields[4] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, ChatMessage obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -35,7 +36,9 @@ class ChatMessageAdapter extends TypeAdapter<ChatMessage> {
       ..writeByte(2)
       ..write(obj.message)
       ..writeByte(3)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(4)
+      ..write(obj.syncStatus);
   }
 
   @override

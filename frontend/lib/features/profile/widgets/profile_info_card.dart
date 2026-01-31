@@ -21,79 +21,107 @@ class ProfileInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xff0F172A).withOpacity(0.04),
+            blurRadius: 30,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Personal Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xffF0FDFA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: Color(0xff0EA5A4),
+                  size: 20,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Full Name
-            _buildInfoRow(
-              icon: Icons.person_outline,
-              label: 'Full Name',
-              value: profile?.fullName ?? 'Not set',
-              isEditing: isEditing,
-              // onChanged: onNameChanged,
-            ),
-            
-            const Divider(height: 30),
-            
-            // Age
-            _buildInfoRow(
-              icon: Icons.cake_outlined,
-              label: 'Age',
-              value: profile?.age?.toString() ?? 'Not set',
-              isEditing: isEditing,
-              onChanged: (value) {
-                if (value != null && value.isNotEmpty) {
-                  onAgeChanged?.call(int.tryParse(value));
-                }
-              },
-            ),
-            
-            const Divider(height: 30),
-            
-            // Gender
-            _buildInfoRow(
-              icon: Icons.transgender,
-              label: 'Gender',
-              value: profile?.gender ?? 'Not set',
-              isEditing: isEditing,
-              isDropdown: true,
-              dropdownOptions: const ['Male', 'Female', 'Other'],
-              onChanged: onGenderChanged,
-            ),
-            
-            const Divider(height: 30),
-            
-            // Phone Number
-            _buildInfoRow(
-              icon: Icons.phone_outlined,
-              label: 'Phone Number',
-              value: profile?.phoneNumber ?? 'Not set',
-              isEditing: isEditing,
-              keyboardType: TextInputType.phone,
-              onChanged: onPhoneChanged,
-            ),
-            
-            const SizedBox(height: 10),
-          ],
-        ),
+              const SizedBox(width: 12),
+              const Text(
+                'Personal Information',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xff0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          // Full Name
+          _buildInfoRow(
+            icon: Icons.person_outline,
+            label: 'Full Name',
+            value: profile?.fullName ?? 'Not set',
+            isEditing: isEditing,
+            onChanged: (value) {
+              if (onNameChanged != null) {
+                // onNameChanged!(value);
+              }
+            },
+          ),
+          
+          const Divider(height: 30, color: Color(0xffF1F5F9)),
+          
+          // Age
+          _buildInfoRow(
+            icon: Icons.cake_outlined,
+            label: 'Age',
+            value: profile?.age?.toString() ?? 'Not set',
+            isEditing: isEditing,
+            onChanged: (value) {
+              if (value != null && value.isNotEmpty) {
+                onAgeChanged?.call(int.tryParse(value));
+              }
+            },
+          ),
+          
+          const Divider(height: 30, color: Color(0xffF1F5F9)),
+          
+          // Gender
+          _buildInfoRow(
+            icon: Icons.transgender_outlined,
+            label: 'Gender',
+            value: profile?.gender ?? 'Not set',
+            isEditing: isEditing,
+            isDropdown: true,
+            dropdownOptions: const ['Male', 'Female', 'Other'],
+            onChanged: onGenderChanged,
+          ),
+          
+          const Divider(height: 30, color: Color(0xffF1F5F9)),
+          
+          // Phone Number
+          _buildInfoRow(
+            icon: Icons.phone_outlined,
+            label: 'Phone Number',
+            value: profile?.phoneNumber ?? 'Not set',
+            isEditing: isEditing,
+            keyboardType: TextInputType.phone,
+            onChanged: (value) {
+              if (onPhoneChanged != null) {
+                onPhoneChanged!(value);
+              }
+            },
+          ),
+        ],
       ),
     );
   }
@@ -109,11 +137,19 @@ class ProfileInfoCard extends StatelessWidget {
     Function(String?)? onChanged,
   }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          color: Colors.blue.shade600,
-          size: 24,
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xffF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            color: const Color(0xff64748B),
+            size: 20,
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -123,45 +159,108 @@ class ProfileInfoCard extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                  color: const Color(0xff64748B),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               if (isEditing)
                 isDropdown
-                    ? DropdownButton<String>(
-                        value: value == 'Not set' ? null : value,
-                        isExpanded: true,
-                        underline: Container(
-                          height: 1,
-                          color: Colors.blue.shade200,
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xffE2E8F0),
+                          ),
                         ),
-                        hint: const Text('Select gender'),
-                        items: dropdownOptions
-                            ?.map((option) => DropdownMenuItem(
-                                  value: option,
-                                  child: Text(option),
-                                ))
-                            .toList(),
-                        onChanged: onChanged,
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: value == 'Not set' ? null : value,
+                            isExpanded: true,
+                            hint: const Text(
+                              'Select gender',
+                              style: TextStyle(
+                                color: Color(0xff94A3B8),
+                                fontSize: 15,
+                              ),
+                            ),
+                            items: dropdownOptions
+                                ?.map((option) => DropdownMenuItem(
+                                      value: option,
+                                      child: Text(
+                                        option,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          color: Color(0xff0F172A),
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
+                            onChanged: onChanged,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Color(0xff0F172A),
+                            ),
+                            dropdownColor: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Color(0xff64748B),
+                            ),
+                          ),
+                        ),
                       )
-                    : TextField(
-                        controller: TextEditingController(text: value == 'Not set' ? '' : value),
-                        decoration: InputDecoration(
-                          hintText: 'Enter $label',
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
+                    : Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xffF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xffE2E8F0),
+                          ),
                         ),
-                        keyboardType: keyboardType,
-                        onChanged: onChanged,
+                        child: TextField(
+                          controller: TextEditingController(
+                            text: value == 'Not set' ? '' : value,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Enter $label',
+                            hintStyle: const TextStyle(
+                              color: Color(0xff94A3B8),
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Color(0xff0F172A),
+                          ),
+                          keyboardType: keyboardType,
+                          onChanged: onChanged,
+                        ),
                       )
               else
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xff0F172A),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
             ],

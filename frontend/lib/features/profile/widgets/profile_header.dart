@@ -22,13 +22,9 @@ class ProfileHeader extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.9),
-            Theme.of(context).primaryColorDark.withOpacity(0.8),
+            const Color(0xff0EA5A4).withOpacity(0.9),
+            const Color(0xff0891B2).withOpacity(0.8),
           ],
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
         ),
       ),
       child: Column(
@@ -37,41 +33,66 @@ class ProfileHeader extends StatelessWidget {
           Stack(
             alignment: Alignment.center,
             children: [
-              // Profile Avatar
+              // Profile Avatar Container
               Container(
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 4,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.2),
+                      Colors.white.withOpacity(0.1),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 2,
+                  ),
                 ),
-                child: isLoading
-                    ? const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      )
-                    : CircleAvatar(
-                        radius: 56,
-                        backgroundColor: Colors.white,
-                        child: Text(
-                          profile?.initials ?? 'U',
-                          style: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                child: Center(
+                  child: isLoading
+                      ? Container(
+                          width: 80,
+                          height: 80,
+                          padding: const EdgeInsets.all(16),
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : CircleAvatar(
+                          radius: 48,
+                          backgroundColor: Colors.white,
+                          child: Container(
+                            width: 88,
+                            height: 88,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xff0EA5A4),
+                                  const Color(0xff0891B2),
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                profile?.initials ?? 'U',
+                                style: const TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                ),
               ),
               // Edit button overlay
               if (onEditPhoto != null)
@@ -81,22 +102,25 @@ class ProfileHeader extends StatelessWidget {
                   child: GestureDetector(
                     onTap: onEditPhoto,
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.2),
-                            blurRadius: 5,
+                            blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.edit,
-                        size: 20,
-                        color: Colors.blue,
+                      child: const Center(
+                        child: Icon(
+                          Icons.edit_outlined,
+                          size: 18,
+                          color: Color(0xff0EA5A4),
+                        ),
                       ),
                     ),
                   ),
@@ -107,18 +131,26 @@ class ProfileHeader extends StatelessWidget {
           Text(
             profile?.displayName ?? 'User',
             style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
           if (profile?.email != null) ...[
             const SizedBox(height: 8),
-            Text(
-              profile!.email!,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white.withOpacity(0.9),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                profile!.email!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],

@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 
-part '../../../models/chat_message.g.dart';
+part 'chat_message.g.dart';
 
 @HiveType(typeId: 1)
 class ChatMessage extends HiveObject {

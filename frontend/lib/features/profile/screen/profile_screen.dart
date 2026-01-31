@@ -102,14 +102,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
         phoneNumber: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
       );
       
-      // Show success message
+      // Show success message with professional snackbar
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: const Color(0xff10B981),
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Profile updated successfully!',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
       
       setState(() {
@@ -117,12 +141,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update profile: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: const Color(0xffEF4444),
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Failed to update profile',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     }
   }
@@ -131,21 +179,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await _controller.syncProfile();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile synced successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: const Color(0xff10B981),
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.sync,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Profile synced successfully!',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sync failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: const Color(0xffEF4444),
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Sync failed',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     }
   }
@@ -153,28 +249,104 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showLogoutDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _logout();
-            },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red),
-            ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xffFEE2E2),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: const Icon(
+                  Icons.logout,
+                  size: 32,
+                  color: Color(0xffEF4444),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Logout',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xff0F172A),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Are you sure you want to logout?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Color(0xff64748B),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: const BorderSide(
+                          color: Color(0xffE2E8F0),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xff64748B),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _logout();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xffEF4444),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -200,19 +372,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
+        backgroundColor: const Color(0xffF8FAFC),
         body: Center(
-          child: CircularProgressIndicator(),
+          child: Container(
+            width: 80,
+            height: 80,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xff0F172A).withOpacity(0.04),
+                  blurRadius: 30,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xff0EA5A4)),
+            ),
+          ),
         ),
       );
     }
 
     if (_errorMessage != null) {
       return Scaffold(
+        backgroundColor: const Color(0xffF8FAFC),
         appBar: AppBar(
-          title: const Text('Profile'),
-          backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
+          backgroundColor: Colors.white,
+          title: const Text(
+            'Profile',
+            style: TextStyle(
+              color: Color(0xff0F172A),
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
+          ),
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Color(0xff0F172A)),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              height: 1,
+              color: const Color(0xffE2E8F0),
+            ),
+          ),
         ),
         body: Center(
           child: Padding(
@@ -220,26 +429,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 60,
-                  color: Colors.red,
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffFEF2F2),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    size: 60,
+                    color: Color(0xffEF4444),
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Text(
                   _errorMessage!,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 16,
-                    color: Colors.red,
+                    color: Color(0xff0F172A),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/login');
-                  },
-                  child: const Text('Go to Login'),
+                const SizedBox(height: 12),
+                const Text(
+                  'Please login again to continue',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xff64748B),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/login');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff0EA5A4),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Go to Login',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -249,35 +493,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xffF8FAFC),
       appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: Theme.of(context).primaryColor,
         elevation: 0,
+        backgroundColor: Colors.white,
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: Color(0xff0F172A),
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Color(0xff0F172A)),
         actions: [
+          // Sync indicator
           if (_controller.isSyncing)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xffF0FDFA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xff0EA5A4)),
+                  ),
                 ),
               ),
             ),
-          IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: _controller.isSyncing ? null : _syncProfile,
-            tooltip: 'Sync with server',
+          // Sync button
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xffF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.sync_outlined,
+                  color: Color(0xff64748B),
+                  size: 20,
+                ),
+              ),
+              onPressed: _controller.isSyncing ? null : _syncProfile,
+              tooltip: 'Sync with server',
+            ),
           ),
+          // Edit button
           if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: _toggleEditMode,
-              tooltip: 'Edit Profile',
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.edit_outlined,
+                    color: Color(0xff64748B),
+                    size: 20,
+                  ),
+                ),
+                onPressed: _toggleEditMode,
+                tooltip: 'Edit Profile',
+              ),
             ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: const Color(0xffE2E8F0),
+          ),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -285,6 +584,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             await _controller.initialize(_userId!, fetchFromBackend: true);
           }
         },
+        color: const Color(0xff0EA5A4),
+        backgroundColor: Colors.white,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
@@ -315,42 +616,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               // Account Settings Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xff0F172A).withOpacity(0.04),
+                      blurRadius: 30,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                margin: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
                     ListTile(
-                      leading: Icon(
-                        Icons.email_outlined,
-                        color: Colors.blue.shade600,
-                      ),
-                      title: const Text('Email'),
-                      subtitle: Text(
-                        _controller.profile?.email ?? 'Not set',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffF0F9FF),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.email_outlined,
+                          color: Color(0xff0EA5A4),
+                          size: 20,
                         ),
                       ),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: Icon(
-                        Icons.calendar_today_outlined,
-                        color: Colors.blue.shade600,
+                      title: const Text(
+                        'Email',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xff64748B),
+                        ),
                       ),
-                      title: const Text('Member Since'),
+                      subtitle: Text(
+                        _controller.profile?.email ?? 'Not set',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xff0F172A),
+                        ),
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    const Divider(height: 20),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffF0F9FF),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_today_outlined,
+                          color: Color(0xff0EA5A4),
+                          size: 20,
+                        ),
+                      ),
+                      title: const Text(
+                        'Member Since',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xff64748B),
+                        ),
+                      ),
                       subtitle: Text(
                         _controller.profile?.createdAt != null
                             ? '${_controller.profile!.createdAt!.day}/${_controller.profile!.createdAt!.month}/${_controller.profile!.createdAt!.year}'
                             : 'Not available',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xff0F172A),
                         ),
                       ),
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ],
                 ),
@@ -359,19 +702,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Action Buttons
               if (_isEditing)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
                           onPressed: _controller.isSaving ? null : _saveProfile,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: const Color(0xff0EA5A4),
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            elevation: 2,
+                            elevation: 0,
                           ),
                           child: _controller.isSaving
                               ? const SizedBox(
@@ -382,12 +726,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text(
-                                  'Save Changes',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.check, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Save Changes',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                         ),
                       ),
@@ -398,15 +749,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            side: BorderSide(color: Colors.grey.shade400),
+                            side: const BorderSide(
+                              color: Color(0xffE2E8F0),
+                            ),
                           ),
                           child: const Text(
                             'Cancel',
                             style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xff64748B),
                             ),
                           ),
                         ),
@@ -417,7 +771,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
               // Logout Button
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
@@ -425,17 +779,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      side: const BorderSide(color: Colors.red),
+                      side: const BorderSide(color: Color(0xffFEE2E2)),
+                      backgroundColor: const Color(0xffFEF2F2),
                     ),
-                    child: const Text(
-                      'Logout',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.logout,
+                          size: 20,
+                          color: const Color(0xffEF4444),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Logout',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Color(0xffEF4444),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

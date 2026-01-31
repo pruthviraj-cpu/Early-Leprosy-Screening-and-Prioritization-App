@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import '../models/chat_message.dart';
+import '../features/chat/model/chat_message.dart';
 
 class CacheService {
   static Box<ChatMessage>? _chatBox;

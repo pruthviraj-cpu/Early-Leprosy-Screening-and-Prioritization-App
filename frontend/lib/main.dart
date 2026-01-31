@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'models/chat_message.dart';
+import 'features/chat/model/chat_message.dart';
 import 'models/diagnosis_result.dart';
-import 'models/user_profile.dart';
+import 'features/profile/model/user_profile.dart';
 
-import 'screens/home.dart';
+// import 'screens/home.dart';
 import 'screens/login.dart';
 import 'screens/register.dart';
-import 'screens/chat.dart';
+// import 'screens/chat.dart';
 // import 'services/cache_service.dart';
+
+import 'features/navigation/bottom_navigation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,8 +41,9 @@ class MyApp extends StatelessWidget {
       routes: {
         'login': (_) => MyLogin(),
         'register': (_) => MyRegister(),
-        'home': (_) => const HomePage(),
-        'chat': (_) => const ChatScreen(),
+        // 'home': (_) => const HomePage(),
+        // 'chat': (_) => const ChatScreen(),
+        'main': (_) => const BottomNavScreen(), // 👈
       },
     );
   }

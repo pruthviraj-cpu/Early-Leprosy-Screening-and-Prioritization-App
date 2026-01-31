@@ -56,6 +56,7 @@ class _MyLoginState extends State<MyLogin> {
 
       if (response.statusCode == 200) {
         await SecureStorage.saveToken(data['token']);
+        await SecureStorage.saveUserId(data['user']['id']);
 
         // 🔹 GET USER ID
         final userId = data['user']['id'];
@@ -63,7 +64,7 @@ class _MyLoginState extends State<MyLogin> {
         // 🔹 OPEN USER-SPECIFIC CHAT BOX
         await CacheService.openUserChatBox(userId);
 
-        Navigator.pushReplacementNamed(context, 'home');
+        Navigator.pushReplacementNamed(context, 'main');
       } else {
         _showError(data['error'] ?? 'Login failed');
       }

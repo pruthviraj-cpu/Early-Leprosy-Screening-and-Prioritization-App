@@ -31,4 +31,50 @@ class ApiService {
   return data['reply'];
 }
 
+static Future<Map<String, dynamic>> getProfile() async {
+  final token = await SecureStorage.getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/profile/me'),
+      headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token', // 🔥 REQUIRED
+    },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get profile: ${response.statusCode}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateProfile({
+    required String? fullName,
+    required int? age,
+    required String? gender,
+    required String? phoneNumber,
+  }) async {
+    final body = {
+      if (fullName != null) 'full_name': fullName,
+      if (age != null) 'age': age,
+      if (gender != null) 'gender': gender,
+      if (phoneNumber != null) 'phone': phoneNumber,
+    };
+    final token = await SecureStorage.getToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/profile/me'),
+      headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token', // 🔥 REQUIRED
+    },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to update profile: ${response.statusCode}');
+    }
+  }
+
 }

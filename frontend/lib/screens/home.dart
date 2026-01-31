@@ -42,12 +42,7 @@ class HomePage extends StatelessWidget {
               style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, 'chat');
-              },
-              child: const Text("Go to Chat"),
-            ),
+            
           ],
         ),
       ),

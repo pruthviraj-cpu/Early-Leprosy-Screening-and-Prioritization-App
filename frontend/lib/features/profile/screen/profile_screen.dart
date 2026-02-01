@@ -549,26 +549,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           // Edit button
-          if (!_isEditing)
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xffF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    color: Color(0xff64748B),
-                    size: 20,
-                  ),
-                ),
-                onPressed: _toggleEditMode,
-                tooltip: 'Edit Profile',
-              ),
-            ),
+          // removed button of edit
+          // if (!_isEditing)
+          //   Padding(
+          //     padding: const EdgeInsets.only(right: 8.0),
+          //     child: IconButton(
+          //       icon: Container(
+          //         padding: const EdgeInsets.all(8),
+          //         decoration: BoxDecoration(
+          //           color: const Color(0xffF1F5F9),
+          //           borderRadius: BorderRadius.circular(12),
+          //         ),
+          //         child: const Icon(
+          //           Icons.edit_outlined,
+          //           color: Color(0xff64748B),
+          //           size: 20,
+          //         ),
+          //       ),
+          //       onPressed: _toggleEditMode,
+          //       tooltip: 'Edit Profile',
+          //     ),
+          //   ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),

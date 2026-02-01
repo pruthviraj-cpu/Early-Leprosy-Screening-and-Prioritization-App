@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:frontend/services/secure_storage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -35,8 +36,7 @@ class _HomePageState extends State<HomePage> {
 
   /* ---------- IMAGE PICK ---------- */
   Future<void> pickImage() async {
-    final XFile? image =
-        await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
         selectedImage = File(image.path);
@@ -62,7 +62,7 @@ class _HomePageState extends State<HomePage> {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       final jsonResponse = jsonDecode(responseBody);
-      
+
       setState(() {
         predictionResult = Map<String, dynamic>.from(jsonResponse);
         loading = false;
@@ -72,7 +72,7 @@ class _HomePageState extends State<HomePage> {
         predictionResult = {
           'error': 'Failed to process image',
           'score': 0.0,
-          'decision': 'ERROR'
+          'decision': 'ERROR',
         };
         loading = false;
       });
@@ -82,6 +82,17 @@ class _HomePageState extends State<HomePage> {
   /* ---------- PROFILE UPDATE ---------- */
   Future<void> updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final token = await SecureStorage.getToken();
+    print(token);
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session expired. Please login again")),
+      );
+      Navigator.pushReplacementNamed(context, 'login');
+      return;
+    }
 
     final body = {
       "full_name": nameCtrl.text,
@@ -94,22 +105,21 @@ class _HomePageState extends State<HomePage> {
       Uri.parse('https://skin-buddy.onrender.com/api/profile/me'),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_TOKEN',
+        'Authorization': 'Bearer $token', // ✅ REAL TOKEN
       },
       body: jsonEncode(body),
     );
 
+    // snackbar logic stays same
     // Show a more professional snackbar
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     scaffoldMessenger.clearSnackBars();
     scaffoldMessenger.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        backgroundColor: response.statusCode == 200 
-            ? const Color(0xff10B981) 
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: response.statusCode == 200
+            ? const Color(0xff10B981)
             : const Color(0xffEF4444),
         content: Row(
           children: [
@@ -124,9 +134,7 @@ class _HomePageState extends State<HomePage> {
                 response.statusCode == 200
                     ? 'Profile updated successfully'
                     : 'Profile update failed',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -174,14 +182,11 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pushReplacementNamed(context, 'login');
               },
             ),
-          )
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: const Color(0xffE2E8F0),
-          ),
+          child: Container(height: 1, color: const Color(0xffE2E8F0)),
         ),
       ),
       body: SingleChildScrollView(
@@ -190,7 +195,7 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            
+
             // Basic Details Card
             _buildSectionCard(
               title: "Basic Details",
@@ -201,10 +206,20 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     _buildInputField(nameCtrl, "Full Name", Icons.person),
                     const SizedBox(height: 16),
-                    _buildInputField(ageCtrl, "Age", Icons.calendar_today, isNumber: true),
+                    _buildInputField(
+                      ageCtrl,
+                      "Age",
+                      Icons.calendar_today,
+                      isNumber: true,
+                    ),
                     const SizedBox(height: 16),
-                    _buildDropdown("Gender", genders, gender, Icons.transgender,
-                        (v) => setState(() => gender = v)),
+                    _buildDropdown(
+                      "Gender",
+                      genders,
+                      gender,
+                      Icons.transgender,
+                      (v) => setState(() => gender = v),
+                    ),
                     const SizedBox(height: 16),
                     _buildInputField(phoneCtrl, "Phone Number", Icons.phone),
                     const SizedBox(height: 24),
@@ -213,26 +228,36 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Symptoms & Location Card
             _buildSectionCard(
               title: "Symptoms & Location",
               icon: Icons.medical_services_outlined,
               child: Column(
                 children: [
-                  _buildDropdown("Symptoms", symptomsList, symptoms, Icons.health_and_safety,
-                      (v) => setState(() => symptoms = v)),
+                  _buildDropdown(
+                    "Symptoms",
+                    symptomsList,
+                    symptoms,
+                    Icons.health_and_safety,
+                    (v) => setState(() => symptoms = v),
+                  ),
                   const SizedBox(height: 16),
-                  _buildDropdown("Affected Area", locations, location, Icons.location_on_outlined,
-                      (v) => setState(() => location = v)),
+                  _buildDropdown(
+                    "Affected Area",
+                    locations,
+                    location,
+                    Icons.location_on_outlined,
+                    (v) => setState(() => location = v),
+                  ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Image Classification Card
             _buildSectionCard(
               title: "Image Analysis",
@@ -314,9 +339,9 @@ class _HomePageState extends State<HomePage> {
                             ],
                           ),
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // Buttons Row
                   Row(
                     children: [
@@ -337,7 +362,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
-                  
+
                   // Loading Indicator
                   if (loading) ...[
                     const SizedBox(height: 24),
@@ -369,7 +394,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ],
-                  
+
                   // Prediction Result
                   if (predictionResult != null) ...[
                     const SizedBox(height: 24),
@@ -409,9 +434,9 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // Confidence Score
                           Container(
                             padding: const EdgeInsets.all(16),
@@ -435,11 +460,18 @@ class _HomePageState extends State<HomePage> {
                                   children: [
                                     Expanded(
                                       child: LinearProgressIndicator(
-                                        value: (predictionResult!['score'] ?? 0.0).toDouble(),
+                                        value:
+                                            (predictionResult!['score'] ?? 0.0)
+                                                .toDouble(),
                                         backgroundColor: Colors.white24,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          _getScoreColor((predictionResult!['score'] ?? 0.0).toDouble()),
-                                        ),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              _getScoreColor(
+                                                (predictionResult!['score'] ??
+                                                        0.0)
+                                                    .toDouble(),
+                                              ),
+                                            ),
                                         minHeight: 8,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
@@ -469,7 +501,7 @@ class _HomePageState extends State<HomePage> {
                               ],
                             ),
                           ),
-                          
+
                           // Additional Info
                           if (predictionResult!['error'] != null)
                             Padding(
@@ -489,7 +521,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 40),
           ],
         ),
@@ -525,10 +557,7 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
               border: Border(
-                bottom: BorderSide(
-                  color: Color(0xffF1F5F9),
-                  width: 1,
-                ),
+                bottom: BorderSide(color: Color(0xffF1F5F9), width: 1),
               ),
             ),
             child: Row(
@@ -539,11 +568,7 @@ class _HomePageState extends State<HomePage> {
                     color: const Color(0xffF0FDFA),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    color: const Color(0xff0EA5A4),
-                    size: 20,
-                  ),
+                  child: Icon(icon, color: const Color(0xff0EA5A4), size: 20),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -557,12 +582,9 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          
+
           // Card Content
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.all(20), child: child),
         ],
       ),
     );
@@ -596,23 +618,13 @@ class _HomePageState extends State<HomePage> {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xffE2E8F0),
-            width: 1,
-          ),
+          borderSide: const BorderSide(color: Color(0xffE2E8F0), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xff0EA5A4),
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: Color(0xff0EA5A4), width: 1.5),
         ),
-        prefixIcon: Icon(
-          icon,
-          size: 20,
-          color: const Color(0xff64748B),
-        ),
+        prefixIcon: Icon(icon, size: 20, color: const Color(0xff64748B)),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16,
           horizontal: 16,
@@ -632,17 +644,19 @@ class _HomePageState extends State<HomePage> {
     return DropdownButtonFormField<String>(
       value: value,
       items: items
-          .map((e) => DropdownMenuItem(
-                value: e,
-                child: Text(
-                  e,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xff0F172A),
-                  ),
+          .map(
+            (e) => DropdownMenuItem(
+              value: e,
+              child: Text(
+                e,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xff0F172A),
                 ),
-              ))
+              ),
+            ),
+          )
           .toList(),
       onChanged: onChange,
       style: const TextStyle(
@@ -664,23 +678,13 @@ class _HomePageState extends State<HomePage> {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xffE2E8F0),
-            width: 1,
-          ),
+          borderSide: const BorderSide(color: Color(0xffE2E8F0), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xff0EA5A4),
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: Color(0xff0EA5A4), width: 1.5),
         ),
-        prefixIcon: Icon(
-          icon,
-          size: 20,
-          color: const Color(0xff64748B),
-        ),
+        prefixIcon: Icon(icon, size: 20, color: const Color(0xff64748B)),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16,
           horizontal: 16,
@@ -688,73 +692,59 @@ class _HomePageState extends State<HomePage> {
       ),
       dropdownColor: Colors.white,
       borderRadius: BorderRadius.circular(12),
-      icon: const Icon(
-        Icons.arrow_drop_down,
-        color: Color(0xff64748B),
-      ),
+      icon: const Icon(Icons.arrow_drop_down, color: Color(0xff64748B)),
     );
   }
 
-  Widget _buildPrimaryButton(String text, VoidCallback onTap, {IconData? icon}) {
+  Widget _buildPrimaryButton(
+    String text,
+    VoidCallback onTap, {
+    IconData? icon,
+  }) {
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xff0EA5A4),
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
         shadowColor: Colors.transparent,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 20),
-            const SizedBox(width: 8),
-          ],
+          if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSecondaryButton(String text, VoidCallback onTap, {IconData? icon}) {
+  Widget _buildSecondaryButton(
+    String text,
+    VoidCallback onTap, {
+    IconData? icon,
+  }) {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        side: const BorderSide(
-          color: Color(0xffE2E8F0),
-          width: 1,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: const BorderSide(color: Color(0xffE2E8F0), width: 1),
         foregroundColor: const Color(0xff64748B),
         backgroundColor: Colors.white,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 20),
-            const SizedBox(width: 8),
-          ],
+          if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ],
       ),

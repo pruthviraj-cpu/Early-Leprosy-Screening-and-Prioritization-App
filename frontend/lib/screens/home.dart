@@ -79,8 +79,8 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  /* ---------- PROFILE UPDATE ---------- */
-  Future<void> updateProfile() async {
+  /* ---------- Diagnosis Save ---------- */
+  Future<void> saveDiagnosis() async {
     if (!_formKey.currentState!.validate()) return;
 
     final token = await SecureStorage.getToken();
@@ -95,14 +95,24 @@ class _HomePageState extends State<HomePage> {
     }
 
     final body = {
-      "full_name": nameCtrl.text,
+      "flul_name": nameCtrl.text,
       "age": int.parse(ageCtrl.text),
       "gender": gender,
-      "phone": phoneCtrl.text,
+      "number": phoneCtrl.text,
+      "symptoms": symptoms,
+      "affected_area": location,
+      "probability": predictionResult != null
+          ? (predictionResult!['score'] ?? 0.0)
+          : null,
+      "image_url": predictionResult != null
+          ? (predictionResult!['filename'] ?? '')
+          : '',
+      "latitude": 0.0,
+      "longitude": 0.0,
     };
 
-    final response = await http.put(
-      Uri.parse('https://skin-buddy.onrender.com/api/profile/me'),
+    final response = await http.post(
+      Uri.parse('http://localhost:5000/api/diagnosis/save'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token', // ✅ REAL TOKEN
@@ -223,7 +233,7 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 16),
                     _buildInputField(phoneCtrl, "Phone Number", Icons.phone),
                     const SizedBox(height: 24),
-                    _buildPrimaryButton("Save Profile", updateProfile),
+                    // _buildPrimaryButton("Save Profile", updateProfile),
                   ],
                 ),
               ),
@@ -358,6 +368,14 @@ class _HomePageState extends State<HomePage> {
                           "Analyze",
                           classifyImage,
                           icon: Icons.search_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildPrimaryButton(
+                          "Save Diagnosis",
+                          saveDiagnosis,
+                          icon: Icons.save_outlined,
                         ),
                       ),
                     ],

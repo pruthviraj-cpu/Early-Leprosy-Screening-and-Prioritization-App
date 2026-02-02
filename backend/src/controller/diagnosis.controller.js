@@ -31,7 +31,7 @@ export const saveDiagnosis = async (req, res) => {
 
         const diagnosis = await saveDiagnosisService(userId, req.body);
 
-        res.status(201).json({
+        res.status(200).json({
             message: "Diagnosis saved successfully",
             diagnosis
         });

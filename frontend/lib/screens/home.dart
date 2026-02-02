@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/services/secure_storage.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -79,12 +80,60 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /* ---------- GET LOCATION ---------- */
+  Future<Position> getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Check if location services are enabled
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    // Check permissions
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception(
+        'Location permissions are permanently denied, cannot request.',
+      );
+    }
+
+    // ✅ Use LocationSettings instead of desiredAccuracy
+    LocationSettings locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0,
+    );
+
+    Position position = await Geolocator.getCurrentPosition(
+      locationSettings: locationSettings,
+    );
+
+    return position;
+  }
+
   /* ---------- Diagnosis Save ---------- */
   Future<void> saveDiagnosis() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final userId = await SecureStorage.getUserId();
+    print(userId);
     final token = await SecureStorage.getToken();
     print(token);
+
+    Position? position = await getCurrentLocation();
+    final latitude = position?.latitude ?? 0.0;
+    final longitude = position?.longitude ?? 0.0;
+
+    final probability = predictionResult?['score']?.toDouble() ?? 0.0;
+    final filename = predictionResult?['filename'] ?? '';
 
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -95,20 +144,17 @@ class _HomePageState extends State<HomePage> {
     }
 
     final body = {
+      "user_id": userId,
       "flul_name": nameCtrl.text,
       "age": int.parse(ageCtrl.text),
       "gender": gender,
       "number": phoneCtrl.text,
       "symptoms": symptoms,
       "affected_area": location,
-      "probability": predictionResult != null
-          ? (predictionResult!['score'] ?? 0.0)
-          : null,
-      "image_url": predictionResult != null
-          ? (predictionResult!['filename'] ?? '')
-          : '',
-      "latitude": 0.0,
-      "longitude": 0.0,
+      "probability": probability,
+      "image_url": filename,
+      "latitude": latitude,
+      "longitude": longitude,
     };
 
     final response = await http.post(
@@ -142,8 +188,8 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: Text(
                 response.statusCode == 200
-                    ? 'Profile updated successfully'
-                    : 'Profile update failed',
+                    ? 'Diagnosis saved successfully'
+                    : 'Diagnosis saving failed',
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
@@ -370,13 +416,16 @@ class _HomePageState extends State<HomePage> {
                           icon: Icons.search_outlined,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildPrimaryButton(
-                          "Save Diagnosis",
-                          saveDiagnosis,
-                          icon: Icons.save_outlined,
-                        ),
+                    ],
+                  ),
+
+                  Column(
+                    children: [
+                      const SizedBox(height: 24),
+                      _buildPrimaryButton(
+                        "Save Diagnosis",
+                        saveDiagnosis,
+                        icon: Icons.save_outlined,
                       ),
                     ],
                   ),

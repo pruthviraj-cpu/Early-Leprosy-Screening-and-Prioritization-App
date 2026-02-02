@@ -48,6 +48,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   image_picker: ^1.0.7
   http: ^1.2.0
+  # for location
+  geolocator: ^14.0.2  # Add this line
 
 
 

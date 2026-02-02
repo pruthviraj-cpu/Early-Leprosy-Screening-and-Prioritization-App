@@ -158,7 +158,7 @@ class _HomePageState extends State<HomePage> {
     };
 
     final response = await http.post(
-      Uri.parse('http://localhost:5000/api/diagnosis/save'),
+      Uri.parse('https://skin-buddy.onrender.com/api/diagnosis/save'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token', // ✅ REAL TOKEN

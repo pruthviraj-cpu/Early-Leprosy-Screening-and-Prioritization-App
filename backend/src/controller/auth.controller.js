@@ -3,13 +3,13 @@ import authService from '../services/auth.service.js';
 
 export const signup = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password, role, adminSecret } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    const data = await authService.signup(email, password, role);
+    const data = await authService.signup(email, password, role, adminSecret);
 
     // Remove supabaseSession from response if you don't need it
     const { supabaseSession, ...responseData } = data;
@@ -54,8 +54,8 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
 
-    if (error.message.includes('Invalid email or password')) {
-      return res.status(401).json({ error: "Invalid email or password" });
+    if (error.message.includes('Invalid email or password or role')) {
+      return res.status(401).json({ error: "Invalid email or password or role" });
     }
 
     res.status(500).json({ error: error.message || "Login failed" });

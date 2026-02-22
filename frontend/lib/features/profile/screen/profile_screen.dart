@@ -18,7 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  
+
   bool _isEditing = false;
   String? _selectedGender;
   String? _userId;
@@ -35,7 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       // Get userId from SecureStorage
       _userId = await SecureStorage.getUserId();
-      
+
       if (_userId == null) {
         setState(() {
           _errorMessage = 'User not found. Please login again.';
@@ -47,14 +47,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Initialize services and controller
       final cacheService = ProfileCacheService();
       final profileService = ProfileService(cacheService);
-      _controller = ProfileController(
-        profileService: profileService,
-      );
-      
+      _controller = ProfileController(profileService: profileService);
+
       // Initialize with fetch from backend
       _controller.initialize(_userId!, fetchFromBackend: true);
       _controller.addListener(_onProfileUpdated);
-      
+
       setState(() {
         _isLoading = false;
       });
@@ -93,15 +91,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (_userId == null) return;
-    
+
     try {
       await _controller.updateProfile(
-        fullName: _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
-        age: _ageController.text.trim().isEmpty ? null : int.tryParse(_ageController.text.trim()),
+        fullName: _nameController.text.trim().isEmpty
+            ? null
+            : _nameController.text.trim(),
+        age: _ageController.text.trim().isEmpty
+            ? null
+            : int.tryParse(_ageController.text.trim()),
         gender: _selectedGender,
-        phoneNumber: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        phoneNumber: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
       );
-      
+
       // Show success message with professional snackbar
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -115,18 +119,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: const Color(0xff10B981),
               content: Row(
                 children: [
-                  const Icon(
-                    Icons.check_circle,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
                       'Profile updated successfully!',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -135,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
       }
-      
+
       setState(() {
         _isEditing = false;
       });
@@ -161,9 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: Text(
                       'Failed to update profile',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -190,18 +186,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: const Color(0xff10B981),
               content: Row(
                 children: [
-                  const Icon(
-                    Icons.sync,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  const Icon(Icons.sync, color: Colors.white, size: 20),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
                       'Profile synced successfully!',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -232,9 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: Text(
                       'Sync failed',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -250,9 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -287,10 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Text(
                 'Are you sure you want to logout?',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Color(0xff64748B),
-                ),
+                style: TextStyle(fontSize: 15, color: Color(0xff64748B)),
               ),
               const SizedBox(height: 24),
               Row(
@@ -303,9 +286,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: const BorderSide(
-                          color: Color(0xffE2E8F0),
-                        ),
+                        side: const BorderSide(color: Color(0xffE2E8F0)),
                       ),
                       child: const Text(
                         'Cancel',
@@ -354,7 +335,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _logout() async {
     await _controller.clearProfile();
     // await SecureStorage.clearAll();
-    
+
     // Navigate to login screen
     Navigator.pushReplacementNamed(context, '/login');
   }
@@ -417,10 +398,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           iconTheme: const IconThemeData(color: Color(0xff0F172A)),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Container(
-              height: 1,
-              color: const Color(0xffE2E8F0),
-            ),
+            child: Container(height: 1, color: const Color(0xffE2E8F0)),
           ),
         ),
         body: Center(
@@ -455,10 +433,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Text(
                   'Please login again to continue',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xff64748B),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xff64748B)),
                 ),
                 const SizedBox(height: 32),
                 SizedBox(
@@ -523,7 +498,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xff0EA5A4)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xff0EA5A4),
+                    ),
                   ),
                 ),
               ),
@@ -550,33 +527,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           // Edit button
           // removed button of edit
-          // if (!_isEditing)
-          //   Padding(
-          //     padding: const EdgeInsets.only(right: 8.0),
-          //     child: IconButton(
-          //       icon: Container(
-          //         padding: const EdgeInsets.all(8),
-          //         decoration: BoxDecoration(
-          //           color: const Color(0xffF1F5F9),
-          //           borderRadius: BorderRadius.circular(12),
-          //         ),
-          //         child: const Icon(
-          //           Icons.edit_outlined,
-          //           color: Color(0xff64748B),
-          //           size: 20,
-          //         ),
-          //       ),
-          //       onPressed: _toggleEditMode,
-          //       tooltip: 'Edit Profile',
-          //     ),
-          //   ),
+          if (!_isEditing)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.edit_outlined,
+                    color: Color(0xff64748B),
+                    size: 20,
+                  ),
+                ),
+                onPressed: _toggleEditMode,
+                tooltip: 'Edit Profile',
+              ),
+            ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: const Color(0xffE2E8F0),
-          ),
+          child: Container(height: 1, color: const Color(0xffE2E8F0)),
         ),
       ),
       body: RefreshIndicator(
@@ -594,9 +568,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ProfileHeader(
                 profile: _controller.profile,
                 isLoading: _controller.isSaving,
-                onEditPhoto: _isEditing ? () {
-                  // TODO: Implement photo upload
-                } : null,
+                onEditPhoto: _isEditing
+                    ? () {
+                        // TODO: Implement photo upload
+                      }
+                    : null,
               ),
               const SizedBox(height: 20),
               ProfileInfoCard(
@@ -752,9 +728,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            side: const BorderSide(
-                              color: Color(0xffE2E8F0),
-                            ),
+                            side: const BorderSide(color: Color(0xffE2E8F0)),
                           ),
                           child: const Text(
                             'Cancel',

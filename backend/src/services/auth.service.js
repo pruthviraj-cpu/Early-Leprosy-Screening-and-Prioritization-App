@@ -2,7 +2,7 @@
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import jwt from 'jsonwebtoken';
 
-export const signup = async (email, password) => {
+export const signup = async (email, password, role) => {
   try {
     // 1. Sign up user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -30,6 +30,7 @@ export const signup = async (email, password) => {
       .insert({
         id: authData.user.id,
         email: email,
+        role: role || 'normal_user',
         created_at: new Date().toISOString()
       });
 
@@ -40,10 +41,11 @@ export const signup = async (email, password) => {
 
     // 3. Generate your own JWT token (or use Supabase's session)
     const token = jwt.sign(
-      { 
-        id: authData.user.id, 
+      {
+        id: authData.user.id,
         email: authData.user.email,
-        sub: authData.user.id  // Standard JWT subject
+        role: role || 'normal_user',
+        sub: authData.user.id
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
@@ -53,6 +55,7 @@ export const signup = async (email, password) => {
       user: {
         id: authData.user.id,
         email: authData.user.email,
+        role: role || 'normal_user',
         created_at: authData.user.created_at
       },
       token,
@@ -78,25 +81,25 @@ export const login = async (email, password) => {
       // If error is about unconfirmed email, use admin to confirm
       if (authError.message.includes('Email not confirmed')) {
         console.log('Email not confirmed, trying to confirm...');
-        
+
         // Get user
         const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
         const user = userList.users.find(u => u.email === email);
-        
+
         if (user) {
           // Confirm email
           await supabaseAdmin.auth.admin.updateUserById(user.id, {
             email_confirm: true
           });
-          
+
           // Try login again
           const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-          
+
           if (retryError) throw new Error('Invalid credentials');
-          
+
           authData = retryData;
         } else {
           throw new Error('Invalid credentials');
@@ -110,11 +113,27 @@ export const login = async (email, password) => {
       throw new Error('Authentication failed');
     }
 
+    // Get role from profiles table
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (!profile.data || profile.data.role !== roleFromRequest) {
+      throw new Error("Invalid role selected");
+    }
+
+    if (profileError) {
+      throw new Error('Profile not found');
+    }
+
     // Generate your own JWT token
     const token = jwt.sign(
-      { 
-        id: authData.user.id, 
+      {
+        id: authData.user.id,
         email: authData.user.email,
+        role: profile.role || 'normal_user',
         sub: authData.user.id
       },
       process.env.JWT_SECRET,
@@ -125,7 +144,8 @@ export const login = async (email, password) => {
       token,
       user: {
         id: authData.user.id,
-        email: authData.user.email
+        email: authData.user.email,
+        role: profile.role || 'normal_user',
       }
     };
 

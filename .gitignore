@@ -66,3 +66,5 @@ logs/
 *.h5
 *.pkl
 *.onnx
+
+/uploads

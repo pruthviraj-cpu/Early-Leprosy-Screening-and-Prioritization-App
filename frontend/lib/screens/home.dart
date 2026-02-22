@@ -26,8 +26,7 @@ class _HomePageState extends State<HomePage> {
   String? location;
 
   File? selectedImage;
-  bool loading1 = false;
-  bool loading2 = false;
+  bool loading = false;
   Map<String, dynamic>? predictionResult;
 
   final ImagePicker _picker = ImagePicker();
@@ -50,7 +49,7 @@ class _HomePageState extends State<HomePage> {
   /* ---------- CLASSIFY ---------- */
   Future<void> classifyImage() async {
     if (selectedImage == null) return;
-    setState(() => loading1 = true);
+    setState(() => loading = true);
 
     final request = http.MultipartRequest(
       'POST',
@@ -62,13 +61,12 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final response = await request.send();
-      print(response.statusCode);
       final responseBody = await response.stream.bytesToString();
       final jsonResponse = jsonDecode(responseBody);
 
       setState(() {
         predictionResult = Map<String, dynamic>.from(jsonResponse);
-        loading1 = false;
+        loading = false;
       });
     } catch (e) {
       setState(() {
@@ -77,7 +75,7 @@ class _HomePageState extends State<HomePage> {
           'score': 0.0,
           'decision': 'ERROR',
         };
-        loading1 = false;
+        loading = false;
       });
     }
   }
@@ -124,74 +122,82 @@ class _HomePageState extends State<HomePage> {
   /* ---------- Diagnosis Save ---------- */
   Future<void> saveDiagnosis() async {
     if (!_formKey.currentState!.validate()) return;
-    if (loading2) return; // ⛔ prevent double submit
 
-    setState(() => loading2 = true);
+    final userId = await SecureStorage.getUserId();
+    print(userId);
+    final token = await SecureStorage.getToken();
+    print(token);
 
-    try {
-      final userId = await SecureStorage.getUserId();
-      final token = await SecureStorage.getToken();
+    Position? position = await getCurrentLocation();
+    final latitude = position?.latitude ?? 0.0;
+    final longitude = position?.longitude ?? 0.0;
 
-      if (token == null || userId == null) {
-        throw Exception("Session expired");
-      }
+    final probability = predictionResult?['score']?.toDouble() ?? 0.0;
+    final filename = predictionResult?['filename'] ?? '';
 
-      Position? position = await getCurrentLocation();
-      final latitude = position?.latitude ?? 0.0;
-      final longitude = position?.longitude ?? 0.0;
-
-      final probability = predictionResult?['score']?.toDouble() ?? 0.0;
-      final filename = predictionResult?['filename'] ?? '';
-
-      final body = {
-        "user_id": userId,
-        "flul_name": nameCtrl.text,
-        "age": int.parse(ageCtrl.text),
-        "gender": gender,
-        "number": phoneCtrl.text,
-        "symptoms": symptoms,
-        "affected_area": location,
-        "probability": probability,
-        "image_url": filename,
-        "latitude": latitude,
-        "longitude": longitude,
-      };
-
-      final response = await http.post(
-        Uri.parse('https://skin-buddy.onrender.com/api/diagnosis/save'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      );
-
-      final success = response.statusCode >= 200 && response.statusCode < 300;
-
+    if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: success
-              ? const Color(0xff10B981)
-              : const Color(0xffEF4444),
-          content: Text(
-            success
-                ? 'Diagnosis saved successfully'
-                : 'Diagnosis saving failed',
-          ),
-        ),
+        const SnackBar(content: Text("Session expired. Please login again")),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: const Color(0xffEF4444),
-          content: Text(e.toString()),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => loading2 = false); // ✅ ALWAYS reset
-      }
+      Navigator.pushReplacementNamed(context, 'login');
+      return;
     }
+
+    final body = {
+      "user_id": userId,
+      "full_name": nameCtrl.text,
+      "age": int.parse(ageCtrl.text),
+      "gender": gender,
+      "number": phoneCtrl.text,
+      "symptoms": symptoms,
+      "affected_area": location,
+      "probability": probability,
+      "image_url": filename,
+      "latitude": latitude,
+      "longitude": longitude,
+    };
+
+    final response = await http.post(
+      Uri.parse('https://skin-buddy.onrender.com/api/diagnosis/save'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // ✅ REAL TOKEN
+      },
+      body: jsonEncode(body),
+    );
+
+    // snackbar logic stays same
+    // Show a more professional snackbar
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    scaffoldMessenger.clearSnackBars();
+    scaffoldMessenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: response.statusCode == 200
+            ? const Color(0xff10B981)
+            : const Color(0xffEF4444),
+        content: Row(
+          children: [
+            Icon(
+              response.statusCode == 200 ? Icons.check_circle : Icons.error,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                response.statusCode == 200
+                    ? 'Diagnosis saved successfully'
+                    : 'Diagnosis saving failed',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   /* ---------- UI ---------- */
@@ -417,17 +423,15 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       const SizedBox(height: 24),
                       _buildPrimaryButton(
-                        loading2 ? "Saving..." : "Save Diagnosis",
-                        loading2 ? () {} : saveDiagnosis,
-                        icon: loading2
-                            ? Icons.hourglass_top
-                            : Icons.save_outlined,
+                        "Save Diagnosis",
+                        saveDiagnosis,
+                        icon: Icons.save_outlined,
                       ),
                     ],
                   ),
 
                   // Loading Indicator
-                  if (loading1) ...[
+                  if (loading) ...[
                     const SizedBox(height: 24),
                     Column(
                       children: [

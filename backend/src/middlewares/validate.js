@@ -1,5 +1,4 @@
-
-export const validateSignup = (req, res, next) => {
+export default validateSignup = (req, res, next) => {
   const { email, password } = req.body;
   
   if (!email || !email.includes('@')) {

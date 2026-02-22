@@ -6,8 +6,8 @@ import { analyzeDiagnosis, saveDiagnosis, getUserDiagnoses } from "../controller
 const diagnosis_router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
-//Analyze image (HF only, no DB)
-diagnosis_router.post("/analyze", verifyToken, upload.single("file"), analyzeDiagnosis);
+// //Analyze image (HF only, no DB)
+// diagnosis_router.post("/analyze", verifyToken, upload.single("file"), analyzeDiagnosis);
 //Aave diagnosis to DB
 diagnosis_router.post("/save", verifyToken, saveDiagnosis);
 

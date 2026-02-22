@@ -150,7 +150,7 @@ class _MyLoginState extends State<MyLogin> {
                 children: [
                   /// Role Selector
                   DropdownButtonFormField<String>(
-                    value: _selectedRole,
+                    initialValue: _selectedRole,
                     decoration: _inputDecoration("Select Role"),
                     items: _roles.map((role) {
                       return DropdownMenuItem(

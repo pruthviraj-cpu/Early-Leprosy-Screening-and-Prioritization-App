@@ -69,7 +69,7 @@ export const signup = async (email, password, role) => {
   }
 };
 
-export const login = async (email, password) => {
+export const login = async (email, password, role) => {
   try {
     // First try regular login
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -120,12 +120,18 @@ export const login = async (email, password) => {
       .eq('id', authData.user.id)
       .single();
 
-    if (!profile.data || profile.data.role !== roleFromRequest) {
-      throw new Error("Invalid role selected");
+    // Check profile first
+    if (profileError || !profile) {
+      throw new Error('Profile not found');
     }
 
-    if (profileError) {
-      throw new Error('Profile not found');
+    // Check role
+    if (!role) {
+      throw new Error('Role is required');
+    }
+
+    if (profile.role.toLowerCase() !== role.toLowerCase()) {
+      throw new Error('Invalid role selected');
     }
 
     // Generate your own JWT token

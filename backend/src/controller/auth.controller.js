@@ -38,13 +38,13 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
+    if (!email || !password || !role) {
+      return res.status(400).json({ error: "Email, password, and role are required" });
     }
 
-    const data = await authService.login(email, password);
+    const data = await authService.login(email, password, role);
 
     // Remove supabaseSession from response if you don't need it
     const { supabaseSession, ...responseData } = data;

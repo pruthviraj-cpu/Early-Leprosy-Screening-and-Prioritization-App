@@ -145,7 +145,7 @@ class _HomePageState extends State<HomePage> {
 
     final body = {
       "user_id": userId,
-      "flul_name": nameCtrl.text,
+      "full_name": nameCtrl.text,
       "age": int.parse(ageCtrl.text),
       "gender": gender,
       "number": phoneCtrl.text,

@@ -12,6 +12,7 @@ import 'screens/register.dart';
 // import 'services/cache_service.dart';
 
 import 'features/navigation/bottom_navigation.dart';
+import 'features/navigation/doctor_navigation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         // 'home': (_) => const HomePage(),
         // 'chat': (_) => const ChatScreen(),
         'main': (_) => const BottomNavScreen(), // 👈
+        'doctor_main': (_) => const DoctorBottomNavScreen(), // 🎉
       },
     );
   }

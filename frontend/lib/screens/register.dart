@@ -19,6 +19,15 @@ class _MyRegisterState extends State<MyRegister> {
   bool _obscureConfirmPassword = true;
   bool _loading = false;
 
+  // for role based signup
+  String _selectedRole = "normal_user";
+
+  final List<String> _roles = ["normal_user", "doctor"];
+
+  // for admin secret input (only for doctor signup)
+  final adminSecretController = TextEditingController();
+  bool _obscureAdminSecret = true;
+
   /// 🔹 Validation + Signup
   Future<void> signupUser() async {
     final email = emailController.text.trim();
@@ -45,6 +54,11 @@ class _MyRegisterState extends State<MyRegister> {
       _showError("Passwords do not match");
       return;
     }
+    if (_selectedRole == "doctor" &&
+        adminSecretController.text.trim().isEmpty) {
+      _showError("Admin password is required for doctor account");
+      return;
+    }
 
     setState(() => _loading = true);
 
@@ -55,6 +69,9 @@ class _MyRegisterState extends State<MyRegister> {
         body: jsonEncode({
           "email": email,
           "password": password,
+          "role": _selectedRole,
+          if (_selectedRole == "doctor")
+            "adminSecret": adminSecretController.text.trim(),
         }),
       );
 
@@ -62,6 +79,7 @@ class _MyRegisterState extends State<MyRegister> {
 
       if (response.statusCode == 201) {
         Navigator.pushReplacementNamed(context, 'login');
+        adminSecretController.clear();
       } else {
         _showError(data['error'] ?? 'Signup failed');
       }
@@ -73,8 +91,9 @@ class _MyRegisterState extends State<MyRegister> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -131,6 +150,25 @@ class _MyRegisterState extends State<MyRegister> {
               ),
               child: Column(
                 children: [
+                  /// Role Selector
+                  DropdownButtonFormField<String>(
+                    value: _selectedRole,
+                    decoration: _inputDecoration("Select Role"),
+                    items: _roles.map((role) {
+                      return DropdownMenuItem(
+                        value: role,
+                        child: Text(role.replaceAll("_", " ").toUpperCase()),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedRole = value!;
+                        adminSecretController.clear();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
                   /// Email
                   TextField(
                     controller: emailController,
@@ -150,8 +188,9 @@ class _MyRegisterState extends State<MyRegister> {
                               ? Icons.visibility_off
                               : Icons.visibility,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                     ),
                   ),
@@ -169,12 +208,34 @@ class _MyRegisterState extends State<MyRegister> {
                               ? Icons.visibility_off
                               : Icons.visibility,
                         ),
-                        onPressed: () => setState(() =>
-                            _obscureConfirmPassword =
-                                !_obscureConfirmPassword),
+                        onPressed: () => setState(
+                          () => _obscureConfirmPassword =
+                              !_obscureConfirmPassword,
+                        ),
                       ),
                     ),
                   ),
+
+                  if (_selectedRole == "doctor") ...[
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: adminSecretController,
+                      obscureText: _obscureAdminSecret,
+                      decoration: _inputDecoration(
+                        "Admin Password",
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureAdminSecret
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscureAdminSecret = !_obscureAdminSecret,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 30),
 
                   /// Sign Up Button
@@ -201,9 +262,7 @@ class _MyRegisterState extends State<MyRegister> {
                       },
                       child: const Text(
                         "Already have an account? Sign In",
-                        style: TextStyle(
-                          decoration: TextDecoration.underline,
-                        ),
+                        style: TextStyle(decoration: TextDecoration.underline),
                       ),
                     ),
                   ),

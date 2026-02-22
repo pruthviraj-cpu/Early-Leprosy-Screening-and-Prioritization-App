@@ -23,12 +23,7 @@ class _MyLoginState extends State<MyLogin> {
   // for role based login
   String _selectedRole = "normal_user";
 
-  final List<String> _roles = [
-    "normal_user",
-    "doctor",
-    "assistant_doctor",
-    "asha_worker",
-  ];
+  final List<String> _roles = ["normal_user", "doctor"];
 
   /// 🔹 Login with validation
   Future<void> loginUser() async {
@@ -69,14 +64,20 @@ class _MyLoginState extends State<MyLogin> {
       if (response.statusCode == 200) {
         await SecureStorage.saveToken(data['token']);
         await SecureStorage.saveUserId(data['user']['id']);
+        await SecureStorage.saveUserRole(data['user']['role']);
 
         // 🔹 GET USER ID
         final userId = data['user']['id'];
+        final role = data['user']['role'];
 
         // 🔹 OPEN USER-SPECIFIC CHAT BOX
         await CacheService.openUserChatBox(userId);
 
-        Navigator.pushReplacementNamed(context, 'main');
+        if (role == "doctor") {
+          Navigator.pushReplacementNamed(context, 'doctor_main');
+        } else {
+          Navigator.pushReplacementNamed(context, 'main');
+        }
       } else {
         _showError(data['error'] ?? 'Login failed');
       }

@@ -2,8 +2,17 @@
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import jwt from 'jsonwebtoken';
 
-export const signup = async (email, password, role) => {
+export const signup = async (email, password, role, adminSecret) => {
   try {
+
+
+    // Optional: Check admin secret for doctor signup
+    if (role === "doctor") {
+      if (!adminSecret || adminSecret !== "SuperStrongSecretKey_987!") {
+        throw new Error("Invalid admin password");
+      }
+    }
+
     // 1. Sign up user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -30,7 +39,7 @@ export const signup = async (email, password, role) => {
       .insert({
         id: authData.user.id,
         email: email,
-        role: role || 'normal_user',
+        role: role === 'doctor' ? 'doctor' : 'normal_user',
         created_at: new Date().toISOString()
       });
 
@@ -44,7 +53,7 @@ export const signup = async (email, password, role) => {
       {
         id: authData.user.id,
         email: authData.user.email,
-        role: role || 'normal_user',
+        role: role === 'doctor' ? 'doctor' : 'normal_user',
         sub: authData.user.id
       },
       process.env.JWT_SECRET,
@@ -55,7 +64,7 @@ export const signup = async (email, password, role) => {
       user: {
         id: authData.user.id,
         email: authData.user.email,
-        role: role || 'normal_user',
+        role: role === 'doctor' ? 'doctor' : 'normal_user',
         created_at: authData.user.created_at
       },
       token,
@@ -157,7 +166,7 @@ export const login = async (email, password, role) => {
 
   } catch (error) {
     console.error('Login service error:', error);
-    throw new Error('Invalid email or password');
+    throw new Error('Invalid email or password or role');
   }
 };
 

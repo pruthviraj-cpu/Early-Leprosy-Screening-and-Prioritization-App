@@ -29,6 +29,10 @@ class SecureStorage {
     await _storage.delete(key: 'userId');
   }
 
+  static Future<void> saveUserRole(String role) async {
+    await _storage.write(key: 'user_role', value: role);
+  }
+
   // Clear all storage (for logout)
   // static Future<void> clearAll() async {
   //   await _storage.deleteAll();

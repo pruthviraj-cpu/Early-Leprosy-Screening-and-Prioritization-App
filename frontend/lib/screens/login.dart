@@ -20,6 +20,16 @@ class _MyLoginState extends State<MyLogin> {
   bool _obscurePassword = true;
   bool _loading = false;
 
+  // for role based login
+  String _selectedRole = "normal_user";
+
+  final List<String> _roles = [
+    "normal_user",
+    "doctor",
+    "assistant_doctor",
+    "asha_worker",
+  ];
+
   /// 🔹 Login with validation
   Future<void> loginUser() async {
     final email = emailController.text.trim();
@@ -50,6 +60,7 @@ class _MyLoginState extends State<MyLogin> {
         body: jsonEncode({
           "email": email,
           "password": password,
+          "role": _selectedRole,
         }),
       );
 
@@ -77,8 +88,9 @@ class _MyLoginState extends State<MyLogin> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -133,8 +145,27 @@ class _MyLoginState extends State<MyLogin> {
                 color: Colors.white.withOpacity(0.85),
                 borderRadius: BorderRadius.circular(20),
               ),
+
               child: Column(
                 children: [
+                  /// Role Selector
+                  DropdownButtonFormField<String>(
+                    value: _selectedRole,
+                    decoration: _inputDecoration("Select Role"),
+                    items: _roles.map((role) {
+                      return DropdownMenuItem(
+                        value: role,
+                        child: Text(role.replaceAll("_", " ").toUpperCase()),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedRole = value!;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
                   /// Email
                   TextField(
                     controller: emailController,

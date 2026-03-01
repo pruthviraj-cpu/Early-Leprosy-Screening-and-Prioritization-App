@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import '../model/user_profile.dart';
 
 class ProfileInfoCard extends StatelessWidget {
+  final TextEditingController nameController;
+  final TextEditingController ageController;
+  final TextEditingController phoneController;
   final UserProfile? profile;
   final bool isEditing;
-  final Function(String)? onNameChanged;
-  final Function(int?)? onAgeChanged;
   final Function(String?)? onGenderChanged;
-  final Function(String?)? onPhoneChanged;
 
   const ProfileInfoCard({
     super.key,
     required this.profile,
-    this.isEditing = false,
-    this.onNameChanged,
-    this.onAgeChanged,
+    required this.isEditing,
+    required this.nameController,
+    required this.ageController,
+    required this.phoneController,
     this.onGenderChanged,
-    this.onPhoneChanged,
   });
 
   @override
@@ -64,37 +64,27 @@ class ProfileInfoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          
+
           // Full Name
           _buildInfoRow(
             icon: Icons.person_outline,
             label: 'Full Name',
             value: profile?.fullName ?? 'Not set',
             isEditing: isEditing,
-            onChanged: (value) {
-              if (onNameChanged != null) {
-                // onNameChanged!(value);
-              }
-            },
           ),
-          
+
           const Divider(height: 30, color: Color(0xffF1F5F9)),
-          
+
           // Age
           _buildInfoRow(
             icon: Icons.cake_outlined,
             label: 'Age',
             value: profile?.age?.toString() ?? 'Not set',
             isEditing: isEditing,
-            onChanged: (value) {
-              if (value != null && value.isNotEmpty) {
-                onAgeChanged?.call(int.tryParse(value));
-              }
-            },
           ),
-          
+
           const Divider(height: 30, color: Color(0xffF1F5F9)),
-          
+
           // Gender
           _buildInfoRow(
             icon: Icons.transgender_outlined,
@@ -105,9 +95,9 @@ class ProfileInfoCard extends StatelessWidget {
             dropdownOptions: const ['Male', 'Female', 'Other'],
             onChanged: onGenderChanged,
           ),
-          
+
           const Divider(height: 30, color: Color(0xffF1F5F9)),
-          
+
           // Phone Number
           _buildInfoRow(
             icon: Icons.phone_outlined,
@@ -115,11 +105,6 @@ class ProfileInfoCard extends StatelessWidget {
             value: profile?.phoneNumber ?? 'Not set',
             isEditing: isEditing,
             keyboardType: TextInputType.phone,
-            onChanged: (value) {
-              if (onPhoneChanged != null) {
-                onPhoneChanged!(value);
-              }
-            },
           ),
         ],
       ),
@@ -145,11 +130,7 @@ class ProfileInfoCard extends StatelessWidget {
             color: const Color(0xffF8FAFC),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: const Color(0xff64748B),
-            size: 20,
-          ),
+          child: Icon(icon, color: const Color(0xff64748B), size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -172,9 +153,7 @@ class ProfileInfoCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: const Color(0xffF8FAFC),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xffE2E8F0),
-                          ),
+                          border: Border.all(color: const Color(0xffE2E8F0)),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -188,16 +167,18 @@ class ProfileInfoCard extends StatelessWidget {
                               ),
                             ),
                             items: dropdownOptions
-                                ?.map((option) => DropdownMenuItem(
-                                      value: option,
-                                      child: Text(
-                                        option,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          color: Color(0xff0F172A),
-                                        ),
+                                ?.map(
+                                  (option) => DropdownMenuItem(
+                                    value: option,
+                                    child: Text(
+                                      option,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        color: Color(0xff0F172A),
                                       ),
-                                    ))
+                                    ),
+                                  ),
+                                )
                                 .toList(),
                             onChanged: onChanged,
                             style: const TextStyle(
@@ -217,14 +198,15 @@ class ProfileInfoCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: const Color(0xffF8FAFC),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xffE2E8F0),
-                          ),
+                          border: Border.all(color: const Color(0xffE2E8F0)),
                         ),
                         child: TextField(
-                          controller: TextEditingController(
-                            text: value == 'Not set' ? '' : value,
-                          ),
+                          // !changes for name
+                          controller: label == 'Full Name'
+                              ? nameController
+                              : label == 'Age'
+                              ? ageController
+                              : phoneController,
                           decoration: InputDecoration(
                             hintText: 'Enter $label',
                             hintStyle: const TextStyle(

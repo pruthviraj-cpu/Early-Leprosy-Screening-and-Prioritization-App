@@ -575,20 +575,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     : null,
               ),
               const SizedBox(height: 20),
+              // !Changes for name updation
               ProfileInfoCard(
                 profile: _controller.profile,
                 isEditing: _isEditing,
-                onNameChanged: (value) {
-                  _nameController.text = value ?? '';
-                },
-                onAgeChanged: (value) {
-                  _ageController.text = value?.toString() ?? '';
-                },
+                nameController: _nameController,
+                ageController: _ageController,
+                phoneController: _phoneController,
                 onGenderChanged: (value) {
                   _selectedGender = value;
-                },
-                onPhoneChanged: (value) {
-                  _phoneController.text = value ?? '';
                 },
               ),
               const SizedBox(height: 20),

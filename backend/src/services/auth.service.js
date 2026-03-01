@@ -40,6 +40,7 @@ export const signup = async (email, password, role, adminSecret) => {
         id: authData.user.id,
         email: email,
         role: role === 'doctor' ? 'doctor' : 'normal_user',
+        is_profile_completed: false,
         created_at: new Date().toISOString()
       });
 
@@ -65,6 +66,7 @@ export const signup = async (email, password, role, adminSecret) => {
         id: authData.user.id,
         email: authData.user.email,
         role: role === 'doctor' ? 'doctor' : 'normal_user',
+        is_profile_completed: false,
         created_at: authData.user.created_at
       },
       token,
@@ -125,7 +127,7 @@ export const login = async (email, password, role) => {
     // Get role from profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, is_profile_completed')
       .eq('id', authData.user.id)
       .single();
 
@@ -149,6 +151,7 @@ export const login = async (email, password, role) => {
         id: authData.user.id,
         email: authData.user.email,
         role: profile.role || 'normal_user',
+        is_profile_completed: profile.is_profile_completed,
         sub: authData.user.id
       },
       process.env.JWT_SECRET,
@@ -161,6 +164,7 @@ export const login = async (email, password, role) => {
         id: authData.user.id,
         email: authData.user.email,
         role: profile.role || 'normal_user',
+        is_profile_completed: profile.is_profile_completed
       }
     };
 

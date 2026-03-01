@@ -3,6 +3,9 @@ import { supabaseAdmin } from '../config/supabase.js';
 export const updateProfile = async (userId, profileData) => {
   const { full_name, age, gender, phone } = profileData;
 
+  const isProfileCompleted =
+    full_name && age && gender && phone ? true : false;
+
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .upsert(
@@ -11,7 +14,8 @@ export const updateProfile = async (userId, profileData) => {
         full_name,
         age,
         gender,
-        phone
+        phone,
+        is_profile_completed: isProfileCompleted,
       },
       { onConflict: 'id' }
     )

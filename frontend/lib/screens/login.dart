@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/services/secure_storage.dart';
 import 'package:frontend/services/cache_service.dart';
+import 'package:frontend/utils/app_snackbar.dart';
 
 class MyLogin extends StatefulWidget {
   const MyLogin({super.key});
@@ -50,7 +51,7 @@ class _MyLoginState extends State<MyLogin> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://skin-buddy.onrender.com/api/auth/login'),
+        Uri.parse('http://localhost:5000/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "email": email,
@@ -65,21 +66,41 @@ class _MyLoginState extends State<MyLogin> {
         await SecureStorage.saveToken(data['token']);
         await SecureStorage.saveUserId(data['user']['id']);
         await SecureStorage.saveUserRole(data['user']['role']);
+        await SecureStorage.saveIsProfileCompleted(
+          data['user']['is_profile_completed'] ?? false,
+        );
 
         // 🔹 GET USER ID
         final userId = data['user']['id'];
         final role = data['user']['role'];
 
+        // 🔹 GET PROFILE COMPLETION STATUS
+        final is_profile_completed =
+            data['user']['is_profile_completed'] ?? false;
+
         // 🔹 OPEN USER-SPECIFIC CHAT BOX
         await CacheService.openUserChatBox(userId);
 
         if (role == "doctor") {
-          Navigator.pushReplacementNamed(context, 'doctor_main');
+          if (is_profile_completed) {
+            Navigator.pushReplacementNamed( context,'doctor_main',arguments: 0,);
+            AppSnackbar.showSuccess(context, "Login successfull");
+          } else {
+            Navigator.pushReplacementNamed(context,'doctor_main', arguments: 1,);
+            AppSnackbar.showInfo(context, "Please complete your profile first!");
+          }
         } else {
-          Navigator.pushReplacementNamed(context, 'main');
+          if (is_profile_completed) {
+            Navigator.pushReplacementNamed(context, 'main', arguments: 0);
+            AppSnackbar.showSuccess(context, "Login successfull");
+          } else {
+            Navigator.pushReplacementNamed(context, 'main', arguments: 2);
+            AppSnackbar.showInfo(context, "Please complete your profile first!");
+          }
         }
       } else {
-        _showError(data['error'] ?? 'Login failed');
+        // _showError(data['error'] ?? 'Login failed');
+        AppSnackbar.showError(context, "Login failed");
       }
     } catch (e) {
       _showError("Server not reachable");

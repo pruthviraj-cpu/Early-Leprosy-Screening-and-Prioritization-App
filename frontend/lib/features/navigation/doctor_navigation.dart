@@ -3,15 +3,24 @@ import 'package:frontend/screens/home.dart';
 import '../profile/screen/profile_screen.dart';
 import 'package:frontend/screens/doctor_home.dart';
 
+// change for profile navigation
 class DoctorBottomNavScreen extends StatefulWidget {
-  const DoctorBottomNavScreen({super.key});
+  final int initialIndex;
+
+  const DoctorBottomNavScreen({super.key, this.initialIndex = 0});
 
   @override
   State<DoctorBottomNavScreen> createState() => _DoctorBottomNavScreenState();
 }
 
 class _DoctorBottomNavScreenState extends State<DoctorBottomNavScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   final List<Widget> _pages = [const DoctorHomePage(), const ProfileScreen()];
 

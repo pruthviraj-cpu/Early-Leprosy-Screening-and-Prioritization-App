@@ -33,6 +33,14 @@ class SecureStorage {
     await _storage.write(key: 'user_role', value: role);
   }
 
+  // storing bool value to check if profile is completed or not
+  static Future<void> saveIsProfileCompleted(bool isCompleted) async {
+    await _storage.write(
+      key: 'is_profile_completed',
+      value: isCompleted.toString(),
+    );
+  }
+
   // Clear all storage (for logout)
   // static Future<void> clearAll() async {
   //   await _storage.deleteAll();

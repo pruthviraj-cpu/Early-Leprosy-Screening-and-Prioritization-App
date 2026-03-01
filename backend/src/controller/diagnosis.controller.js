@@ -1,20 +1,20 @@
-import { analyzeImageService, saveDiagnosisService, getUserDiagnosesService,createDiagnosisService } from "../services/diagnosis.service.js";
+import {  saveDiagnosisService, getUserDiagnosesService,createDiagnosisService,getAllPatientsService } from "../services/diagnosis.service.js";
 import fs from "fs";
 
 /* analyze (HF only) */
-export const analyzeDiagnosis = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: "Image file is required" });
-        }
+// export const analyzeDiagnosis = async (req, res) => {
+//     try {
+//         if (!req.file) {
+//             return res.status(400).json({ error: "Image file is required" });
+//         }
 
-        const prediction = await analyzeImageService(req.file);
+//         const prediction = await analyzeImageService(req.file);
 
-        res.json(prediction);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+//         res.json(prediction);
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//     }
+// };
 
 /* SAVE DIAGNOSIS  */
 export const saveDiagnosis = async (req, res) => {
@@ -58,6 +58,7 @@ export const getUserDiagnoses = async (req, res) => {
             error: error.message 
         });
     }
+
 };
 
 
@@ -95,4 +96,33 @@ export const createDiagnosis = async (req, res) => {
       error: error.message
     });
   }
+};
+
+
+/*  DOCTOR LEDGER CONTROLLER  */
+
+
+export const getAllPatients = async (req, res) => {
+    try {
+        // Optional: Restrict to doctors only
+        if (req.user.role !== "doctor" ) {
+            return res.status(403).json({
+                success: false,
+                message: "Access restricted to doctors and admins only"
+            });
+        }
+
+        const patients = await getAllPatientsService();
+
+        return res.status(200).json({
+            success: true,
+            count: patients.length,
+            data: patients
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
 };

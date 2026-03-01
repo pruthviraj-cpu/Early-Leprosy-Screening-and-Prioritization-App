@@ -4,26 +4,27 @@ import { supabaseAdmin } from "../config/supabase.js";
 import fetch from "node-fetch";
 
 
-/*  ANALYZE IMAGE (HF SPACE)  */
-export const analyzeImageService = async (file) => {
-    const form = new FormData();
-    form.append("file", fs.createReadStream(file.path));
+// /*  ANALYZE IMAGE (HF SPACE)  */
+// export const analyzeImageService = async (file) => {
+//     const form = new FormData();
+//     form.append("file", fs.createReadStream(file.path));
 
-    const response = await fetch(
-        "https://tes112t-leprosy.hf.space/predict",
-        {
-            method: "POST",
-            body: form,
-            headers: form.getHeaders()
-        }
-    );
+//     const response = await fetch(
+//         "https://tes112t-leprosy.hf.space/predict",
+//         {
+//             method: "POST",
+//             body: form,
+//             headers: form.getHeaders()
+//         }
+//     );
 
-    if (!response.ok) {
-        throw new Error("Failed to analyze image");
-    }
+//     if (!response.ok) {
+//         throw new Error("Failed to analyze image");
+//     }
 
-    return response.json();
-};
+//     return response.json();
+// };
+
 
 /*  SAVE DIAGNOSIS  */
 export const saveDiagnosisService = async (userId, payload) => {
@@ -39,6 +40,8 @@ export const saveDiagnosisService = async (userId, payload) => {
 
     return data;
 };
+
+
 
 /*  GET USER DIAGNOSES  */
 export const getUserDiagnosesService = async (userId) => {
@@ -141,4 +144,146 @@ export const createDiagnosisService = async (userId, file, body) => {
     console.error("CREATE DIAGNOSIS ERROR:", error.message);
     throw error;
   }
+};
+
+
+
+
+export const getAllPatientsService = async () => {
+    try {
+        // Get all diagnosis results
+        const { data: diagnoses, error: diagnosesError } = await supabaseAdmin
+            .from("diagnosis_results")
+            .select(`
+                id,
+                user_id,
+                full_name,
+                probability,
+                diagnosis_result,
+                symptoms,
+                affected_area,
+                age,
+                gender,
+                image_url,
+                latitude,
+                longitude,
+                number,
+                created_at
+            `)
+            .order("created_at", { ascending: false });
+
+        if (diagnosesError) throw new Error(diagnosesError.message);
+
+        if (!diagnoses || diagnoses.length === 0) {
+            return [];
+        }
+
+        // Get all unique user IDs
+        const userIds = [...new Set(diagnoses.map(d => d.user_id))];
+
+        // Fetch profiles for these users
+        const { data: profiles, error: profilesError } = await supabaseAdmin
+            .from("profiles")
+            .select(`
+                id,
+                email,
+                role,
+                phone
+            `)
+            .in("id", userIds);
+
+        if (profilesError) throw new Error(profilesError.message);
+
+        // Create a map of profiles by user_id
+        const profilesMap = new Map();
+        profiles?.forEach(profile => {
+            profilesMap.set(profile.id, profile);
+        });
+
+        // Group by patient
+        const patientsMap = new Map();
+        
+        diagnoses.forEach((item) => {
+            const patientId = item.user_id;
+            const profile = profilesMap.get(patientId);
+            
+            // ✅ FIX: Handle image URL properly
+            let imageUrl = null;
+            if (item.image_url) {
+                // Check if it's already a full URL or just a path
+                if (item.image_url.startsWith('http')) {
+                    imageUrl = item.image_url;
+                } else {
+                    const { data: publicUrlData } = supabaseAdmin.storage
+                        .from("Skin_images")
+                        .getPublicUrl(item.image_url);
+                    imageUrl = publicUrlData.publicUrl;
+                }
+            }
+            
+            if (!patientsMap.has(patientId)) {
+                patientsMap.set(patientId, {
+                    patient_id: patientId,
+                    full_name: item.full_name,
+                    email: profile?.email || null,
+                    phone: profile?.phone || item.number || null, // Use number from diagnosis if available
+                    role: profile?.role || 'patient',
+                    age: item.age,
+                    gender: item.gender,
+                    latest_diagnosis: {
+                        id: item.id,
+                        probability: item.probability,
+                        diagnosis_result: item.diagnosis_result,
+                        symptoms: item.symptoms,
+                        affected_area: item.affected_area,
+                        image_url: imageUrl,
+                        latitude: item.latitude,
+                        longitude: item.longitude,
+                        created_at: item.created_at
+                    },
+                    diagnosis_count: 1,
+                    all_diagnoses: [{
+                        id: item.id,
+                        probability: item.probability,
+                        diagnosis_result: item.diagnosis_result,
+                        created_at: item.created_at,
+                        image_url: imageUrl
+                    }]
+                });
+            } else {
+                const patient = patientsMap.get(patientId);
+                patient.diagnosis_count += 1;
+                
+                patient.all_diagnoses.push({
+                    id: item.id,
+                    probability: item.probability,
+                    diagnosis_result: item.diagnosis_result,
+                    created_at: item.created_at,
+                    image_url: imageUrl
+                });
+                
+                // Update latest diagnosis if newer
+                if (new Date(item.created_at) > new Date(patient.latest_diagnosis.created_at)) {
+                    patient.latest_diagnosis = {
+                        id: item.id,
+                        probability: item.probability,
+                        diagnosis_result: item.diagnosis_result,
+                        symptoms: item.symptoms,
+                        affected_area: item.affected_area,
+                        image_url: imageUrl,
+                        latitude: item.latitude,
+                        longitude: item.longitude,
+                        created_at: item.created_at
+                    };
+                }
+            }
+        });
+
+        const patients = Array.from(patientsMap.values());
+        return patients;
+
+    } catch (error) {
+        console.error("GET ALL PATIENTS ERROR:", error.message);
+        throw error;
+    }
 };

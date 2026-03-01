@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -27,7 +26,6 @@ class _HomePageState extends State<HomePage> {
 
   File? selectedImage;
   bool loading = false;
-  Map<String, dynamic>? predictionResult;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -41,41 +39,6 @@ class _HomePageState extends State<HomePage> {
     if (image != null) {
       setState(() {
         selectedImage = File(image.path);
-        predictionResult = null;
-      });
-    }
-  }
-
-  /* ---------- CLASSIFY ---------- */
-  Future<void> classifyImage() async {
-    if (selectedImage == null) return;
-    setState(() => loading = true);
-
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('https://tes112t-leprosy.hf.space/predict'),
-    );
-    request.files.add(
-      await http.MultipartFile.fromPath('file', selectedImage!.path),
-    );
-
-    try {
-      final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
-      final jsonResponse = jsonDecode(responseBody);
-
-      setState(() {
-        predictionResult = Map<String, dynamic>.from(jsonResponse);
-        loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        predictionResult = {
-          'error': 'Failed to process image',
-          'score': 0.0,
-          'decision': 'ERROR',
-        };
-        loading = false;
       });
     }
   }
@@ -85,13 +48,11 @@ class _HomePageState extends State<HomePage> {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Check if location services are enabled
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception('Location services are disabled.');
     }
 
-    // Check permissions
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -106,7 +67,6 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // ✅ Use LocationSettings instead of desiredAccuracy
     LocationSettings locationSettings = const LocationSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: 0,
@@ -119,21 +79,19 @@ class _HomePageState extends State<HomePage> {
     return position;
   }
 
-  /* ---------- Diagnosis Save ---------- */
-  Future<void> saveDiagnosis() async {
+  /* ---------- SUBMIT DIAGNOSIS (Analyze + Save in one call) ---------- */
+  Future<void> submitDiagnosis() async {
     if (!_formKey.currentState!.validate()) return;
+    if (selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select an image first")),
+      );
+      return;
+    }
 
-    final userId = await SecureStorage.getUserId();
-    print(userId);
+    setState(() => loading = true);
+
     final token = await SecureStorage.getToken();
-    print(token);
-
-    Position? position = await getCurrentLocation();
-    final latitude = position?.latitude ?? 0.0;
-    final longitude = position?.longitude ?? 0.0;
-
-    final probability = predictionResult?['score']?.toDouble() ?? 0.0;
-    final filename = predictionResult?['filename'] ?? '';
 
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -143,61 +101,144 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    final body = {
-      "user_id": userId,
-      "full_name": nameCtrl.text,
-      "age": int.parse(ageCtrl.text),
-      "gender": gender,
-      "number": phoneCtrl.text,
-      "symptoms": symptoms,
-      "affected_area": location,
-      "probability": probability,
-      "image_url": filename,
-      "latitude": latitude,
-      "longitude": longitude,
-    };
+    try {
+      // Get location
+      Position position = await getCurrentLocation();
+      final latitude = position.latitude;
+      final longitude = position.longitude;
 
-    final response = await http.post(
-      Uri.parse('https://skin-buddy.onrender.com/api/diagnosis/save'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token', // ✅ REAL TOKEN
-      },
-      body: jsonEncode(body),
-    );
+      // Create multipart request
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://skin-buddy.onrender.com/api/diagnosis/create'),
+      );
 
-    // snackbar logic stays same
-    // Show a more professional snackbar
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    scaffoldMessenger.clearSnackBars();
-    scaffoldMessenger.showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: response.statusCode == 200
-            ? const Color(0xff10B981)
-            : const Color(0xffEF4444),
-        content: Row(
-          children: [
-            Icon(
-              response.statusCode == 200 ? Icons.check_circle : Icons.error,
-              color: Colors.white,
-              size: 20,
+      // Add headers
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Add text fields
+      request.fields['full_name'] = nameCtrl.text;
+      request.fields['age'] = ageCtrl.text;
+      request.fields['gender'] = gender ?? '';
+      request.fields['number'] = phoneCtrl.text;
+      request.fields['symptoms'] = symptoms ?? '';
+      request.fields['affected_area'] = location ?? '';
+      request.fields['latitude'] = latitude.toString();
+      request.fields['longitude'] = longitude.toString();
+
+      // Add image file
+      request.files.add(
+        await http.MultipartFile.fromPath('file', selectedImage!.path),
+      );
+
+      // Send request
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+      var responseData = jsonDecode(response.body);
+
+      setState(() => loading = false);
+
+      // Show success/failure message
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      scaffoldMessenger.clearSnackBars();
+
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        // ✅ Success
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: const Color(0xff10B981),
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Form Submitted Successfully!',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Your diagnosis has been recorded',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                response.statusCode == 200
-                    ? 'Diagnosis saved successfully'
-                    : 'Diagnosis saving failed',
-                style: const TextStyle(fontWeight: FontWeight.w500),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+
+        // Clear form after successful submission
+        _clearForm();
+      } else {
+        // ❌ Failure
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: const Color(0xffEF4444),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    responseData['message'] ?? 'Failed to save diagnosis',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: const Color(0xffEF4444),
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Error: ${e.toString()}'),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+      );
+    }
+  }
+
+  // Helper method to clear form
+  void _clearForm() {
+    nameCtrl.clear();
+    ageCtrl.clear();
+    phoneCtrl.clear();
+    setState(() {
+      gender = null;
+      symptoms = null;
+      location = null;
+      selectedImage = null;
+    });
   }
 
   /* ---------- UI ---------- */
@@ -279,7 +320,6 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 16),
                     _buildInputField(phoneCtrl, "Phone Number", Icons.phone),
                     const SizedBox(height: 24),
-                    // _buildPrimaryButton("Save Profile", updateProfile),
                   ],
                 ),
               ),
@@ -314,9 +354,9 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 20),
 
-            // Image Classification Card
+            // Image Upload Card
             _buildSectionCard(
-              title: "Image Analysis",
+              title: "Upload Image",
               icon: Icons.image_outlined,
               child: Column(
                 children: [
@@ -398,36 +438,20 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 20),
 
-                  // Buttons Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSecondaryButton(
-                          "Upload Image",
-                          pickImage,
-                          icon: Icons.upload_outlined,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildPrimaryButton(
-                          "Analyze",
-                          classifyImage,
-                          icon: Icons.search_outlined,
-                        ),
-                      ),
-                    ],
+                  // Single Button - Upload Image
+                  _buildSecondaryButton(
+                    "Choose Image",
+                    pickImage,
+                    icon: Icons.upload_outlined,
                   ),
 
-                  Column(
-                    children: [
-                      const SizedBox(height: 24),
-                      _buildPrimaryButton(
-                        "Save Diagnosis",
-                        saveDiagnosis,
-                        icon: Icons.save_outlined,
-                      ),
-                    ],
+                  const SizedBox(height: 24),
+
+                  // Submit Button
+                  _buildPrimaryButton(
+                    "Submit Diagnosis",
+                    submitDiagnosis,
+                    icon: Icons.save_outlined,
                   ),
 
                   // Loading Indicator
@@ -452,137 +476,13 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'Analyzing image...',
+                          'Processing...',
                           style: TextStyle(
                             color: Color(0xff64748B),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
-                    ),
-                  ],
-
-                  // Prediction Result
-                  if (predictionResult != null) ...[
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: _getResultColor(predictionResult!['decision']),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white24,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  _getResultIcon(predictionResult!['decision']),
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  predictionResult!['decision'] ?? 'UNKNOWN',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Confidence Score
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white10,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Confidence Score',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: LinearProgressIndicator(
-                                        value:
-                                            (predictionResult!['score'] ?? 0.0)
-                                                .toDouble(),
-                                        backgroundColor: Colors.white24,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              _getScoreColor(
-                                                (predictionResult!['score'] ??
-                                                        0.0)
-                                                    .toDouble(),
-                                              ),
-                                            ),
-                                        minHeight: 8,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      '${((predictionResult!['score'] ?? 0.0).toDouble() * 100).toStringAsFixed(1)}%',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (predictionResult!['filename'] != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Text(
-                                      'File: ${predictionResult!['filename']}',
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.7),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-
-                          // Additional Info
-                          if (predictionResult!['error'] != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: Text(
-                                predictionResult!['error'],
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
                     ),
                   ],
                 ],
@@ -597,7 +497,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   /* ---------- REUSABLE WIDGETS ---------- */
-
   Widget _buildSectionCard({
     required String title,
     required Widget child,
@@ -619,7 +518,6 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Card Header
           Container(
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
@@ -649,8 +547,6 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-
-          // Card Content
           Padding(padding: const EdgeInsets.all(20), child: child),
         ],
       ),
@@ -816,35 +712,5 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
-  }
-
-  /* ---------- HELPER FUNCTIONS ---------- */
-
-  Color _getResultColor(String decision) {
-    switch (decision.toUpperCase()) {
-      case 'LEPROSY':
-        return const Color(0xffEF4444);
-      case 'HEALTHY':
-        return const Color(0xff10B981);
-      default:
-        return const Color(0xff64748B);
-    }
-  }
-
-  IconData _getResultIcon(String decision) {
-    switch (decision.toUpperCase()) {
-      case 'LEPROSY':
-        return Icons.warning_amber_outlined;
-      case 'HEALTHY':
-        return Icons.check_circle_outline;
-      default:
-        return Icons.help_outline;
-    }
-  }
-
-  Color _getScoreColor(double score) {
-    if (score > 0.7) return const Color(0xff10B981);
-    if (score > 0.4) return const Color(0xffF59E0B);
-    return const Color(0xffEF4444);
   }
 }

@@ -259,28 +259,29 @@ class _HomePageState extends State<HomePage> {
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xff0F172A)),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xffF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.logout,
-                  color: Color(0xffEF4444),
-                  size: 20,
-                ),
-              ),
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, 'login');
-              },
-            ),
-          ),
-        ],
+        // !removed for avoiding duplication of logout button
+        // actions: [
+        //   Padding(
+        //     padding: const EdgeInsets.only(right: 8.0),
+        //     child: IconButton(
+        //       icon: Container(
+        //         padding: const EdgeInsets.all(8),
+        //         decoration: BoxDecoration(
+        //           color: const Color(0xffF1F5F9),
+        //           borderRadius: BorderRadius.circular(12),
+        //         ),
+        //         child: const Icon(
+        //           Icons.logout,
+        //           color: Color(0xffEF4444),
+        //           size: 20,
+        //         ),
+        //       ),
+        //       onPressed: () {
+        //         Navigator.pushReplacementNamed(context, 'login');
+        //       },
+        //     ),
+        //   ),
+        // ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(height: 1, color: const Color(0xffE2E8F0)),

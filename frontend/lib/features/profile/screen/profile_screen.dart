@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/app_snackbar.dart';
 import '../profile_controller.dart';
 import '../service/profile_service.dart';
 import '../service/profile_cache_service.dart';
@@ -234,6 +235,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    await _controller.clearProfile();
+    // await SecureStorage.clearAll();
+
+    // Navigate to login screen
+    Navigator.pushReplacementNamed(context, 'login');
+  }
+
   void _showLogoutDialog() {
     showDialog(
       context: context,
@@ -303,6 +312,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
+                        AppSnackbar.showSuccess(
+                          context,
+                          "Logout successfully!!",
+                        );
                         _logout();
                       },
                       style: ElevatedButton.styleFrom(
@@ -330,14 +343,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _logout() async {
-    await _controller.clearProfile();
-    // await SecureStorage.clearAll();
-
-    // Navigate to login screen
-    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
@@ -746,6 +751,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: _showLogoutDialog,
+                    // onPressed: () {
+                    //   Navigator.pushReplacementNamed(context, 'login');
+                    // },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

@@ -11,6 +11,8 @@ import 'screens/register.dart';
 // import 'screens/chat.dart';
 // import 'services/cache_service.dart';
 
+import 'features/profile/screen/profile_screen.dart';
+
 import 'features/navigation/bottom_navigation.dart';
 import 'features/navigation/doctor_navigation.dart';
 
@@ -30,7 +32,6 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -44,8 +45,15 @@ class MyApp extends StatelessWidget {
         'register': (_) => MyRegister(),
         // 'home': (_) => const HomePage(),
         // 'chat': (_) => const ChatScreen(),
-        'main': (_) => const BottomNavScreen(), // 👈
-        'doctor_main': (_) => const DoctorBottomNavScreen(), // 🎉
+        // changes for new feature navigation to profile for completion
+        'main': (context) {
+          final index = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
+          return BottomNavScreen(initialIndex: index);
+        },
+        'doctor_main': (context) {
+          final index = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
+          return DoctorBottomNavScreen(initialIndex: index);
+        },
       },
     );
   }

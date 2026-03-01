@@ -3,15 +3,25 @@ import 'package:frontend/screens/chat.dart';
 import 'package:frontend/screens/home.dart';
 import '../profile/screen/profile_screen.dart';
 
+
+// changes for user navigation
 class BottomNavScreen extends StatefulWidget {
-  const BottomNavScreen({super.key});
+  final int initialIndex;
+
+  const BottomNavScreen({super.key, this.initialIndex = 0});
 
   @override
   State<BottomNavScreen> createState() => _BottomNavScreenState();
 }
 
 class _BottomNavScreenState extends State<BottomNavScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -34,10 +44,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
             ),
           ],
           border: const Border(
-            top: BorderSide(
-              color: Color(0xffE2E8F0),
-              width: 1,
-            ),
+            top: BorderSide(color: Color(0xffE2E8F0), width: 1),
           ),
         ),
         child: SafeArea(

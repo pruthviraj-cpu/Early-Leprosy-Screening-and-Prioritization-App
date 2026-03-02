@@ -23,7 +23,7 @@ class _PatientListItemState extends State<PatientListItem> {
   @override
   Widget build(BuildContext context) {
     final diagnosis = widget.patient["latest_diagnosis"];
-    final probability = diagnosis?["probability"] ?? 0;
+    final probability = (diagnosis?["probability"] as num?)?.toDouble() ?? 0.0;
     final result = diagnosis?["diagnosis_result"];
     final imageUrl = diagnosis?["image_url"];
     final createdAt = diagnosis?["created_at"];

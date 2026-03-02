@@ -16,6 +16,8 @@ import 'features/profile/screen/profile_screen.dart';
 import 'features/navigation/bottom_navigation.dart';
 import 'features/navigation/doctor_navigation.dart';
 
+import 'screens/doctor_home.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -53,6 +55,13 @@ class MyApp extends StatelessWidget {
         'doctor_main': (context) {
           final index = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
           return DoctorBottomNavScreen(initialIndex: index);
+        },
+        "doctor_details": (context) {
+          final patient =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+
+          return DoctorHomePage(patient: patient);
         },
       },
     );

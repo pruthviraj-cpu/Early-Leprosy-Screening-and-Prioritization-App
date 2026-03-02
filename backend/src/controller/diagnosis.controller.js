@@ -1,4 +1,4 @@
-import {  saveDiagnosisService, getUserDiagnosesService,createDiagnosisService,getAllPatientsService } from "../services/diagnosis.service.js";
+import { saveDiagnosisService, getUserDiagnosesService, createDiagnosisService, getAllPatientsService } from "../services/diagnosis.service.js";
 import fs from "fs";
 
 /* analyze (HF only) */
@@ -23,7 +23,7 @@ export const saveDiagnosis = async (req, res) => {
 
         const { full_name, symptoms, affected_area, probability, age, gender } = req.body;
 
-        if(!full_name || !symptoms || !affected_area  || probability === undefined) {
+        if (!full_name || !symptoms || !affected_area || probability === undefined) {
             return res.status(400).json({
                 success: false,
                 message: "Missing required fields."
@@ -53,9 +53,9 @@ export const getUserDiagnoses = async (req, res) => {
             data: diagnoses
         });
     } catch (error) {
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: error.message 
+            error: error.message
         });
     }
 
@@ -64,38 +64,38 @@ export const getUserDiagnoses = async (req, res) => {
 
 
 export const createDiagnosis = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
+    try {
+        const userId = req.user.id;
 
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "Image file is required"
-      });
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "Image file is required"
+            });
+        }
+
+        const result = await createDiagnosisService(
+            userId,
+            req.file,
+            req.body
+        );
+
+        // remove temp file
+        fs.unlinkSync(req.file.path);
+
+        return res.status(200).json({
+            success: true,
+            message: "Diagnosis stored successfully",
+            data: result
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
-
-    const result = await createDiagnosisService(
-      userId,
-      req.file,
-      req.body
-    );
-
-    // remove temp file
-    fs.unlinkSync(req.file.path);
-
-    return res.status(200).json({
-      success: true,
-      message: "Diagnosis stored successfully",
-      data: result
-    });
-
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
 };
 
 
@@ -105,7 +105,7 @@ export const createDiagnosis = async (req, res) => {
 export const getAllPatients = async (req, res) => {
     try {
         // Optional: Restrict to doctors only
-        if (req.user.role !== "doctor" ) {
+        if (req.user.role !== "doctor") {
             return res.status(403).json({
                 success: false,
                 message: "Access restricted to doctors and admins only"

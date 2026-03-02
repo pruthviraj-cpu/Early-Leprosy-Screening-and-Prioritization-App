@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/screens/home.dart';
 import '../profile/screen/profile_screen.dart';
 import 'package:frontend/screens/doctor_home.dart';
+import '../../screens/doctor_home(list).dart';
 
 // change for profile navigation
 class DoctorBottomNavScreen extends StatefulWidget {
@@ -22,7 +23,10 @@ class _DoctorBottomNavScreenState extends State<DoctorBottomNavScreen> {
     _currentIndex = widget.initialIndex;
   }
 
-  final List<Widget> _pages = [const DoctorHomePage(), const ProfileScreen()];
+  final List<Widget> _pages = [
+    const DoctorHomeListPage(),
+    const ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/screens/home.dart';
 import '../profile/screen/profile_screen.dart';
 import 'package:frontend/screens/doctor_home.dart';
-import '../../screens/doctor_home(list).dart';
+import '../../screens/doctor_home_list.dart';
 
 // change for profile navigation
 class DoctorBottomNavScreen extends StatefulWidget {

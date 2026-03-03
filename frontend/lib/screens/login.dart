@@ -251,23 +251,25 @@ class _MyLoginState extends State<MyLogin> {
                       TextButton(
                         onPressed: () {
                           Navigator.pushNamed(context, 'register');
-                        },
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            decoration: TextDecoration.underline,
+                        },child: Center(
+                          child: const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              decoration: TextDecoration.underline,
+                              
+                            ),
                           ),
-                        ),
+                        )
                       ),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
+                      // TextButton(
+                      //   onPressed: () {},
+                      //   child: const Text(
+                      //     'Forgot Password?',
+                      //     style: TextStyle(
+                      //       decoration: TextDecoration.underline,
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ],

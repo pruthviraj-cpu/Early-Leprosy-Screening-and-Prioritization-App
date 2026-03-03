@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { verifyToken } from "../middlewares/auth.middleware.js";
-import{ saveDiagnosis, getUserDiagnoses,createDiagnosis,getAllPatients ,updateDoctorReview,getReviewedPatients, getPatientById } from "../controller/diagnosis.controller.js";
+import{ saveDiagnosis, getUserDiagnoses,createDiagnosis,getAllPatients ,updateDoctorReview, getPatientById } from "../controller/diagnosis.controller.js";
 
 const diagnosis_router = express.Router();
 const upload = multer({ dest: "uploads/" });
@@ -19,7 +19,7 @@ diagnosis_router.get("/", verifyToken, getUserDiagnoses);
 
 // New routes for doctor review
 diagnosis_router.put("/:diagnosisId/review", verifyToken, updateDoctorReview);
-diagnosis_router.get("/reviews", verifyToken, getReviewedPatients);
+
 diagnosis_router.get("/:diagnosisId", verifyToken, getPatientById);
 
 diagnosis_router.get("/patients/all", verifyToken, getAllPatients);

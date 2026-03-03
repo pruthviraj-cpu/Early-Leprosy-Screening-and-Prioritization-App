@@ -168,7 +168,9 @@ export const getAllPatientsService = async () => {
                 latitude,
                 longitude,
                 number,
-                created_at
+                created_at,
+                doctor_review
+                
             `)
             .order("created_at", { ascending: false });
 
@@ -230,7 +232,8 @@ export const getAllPatientsService = async () => {
                 image_url: imageUrl,
                 latitude: item.latitude,
                 longitude: item.longitude,
-                created_at: item.created_at
+                created_at: item.created_at,
+                doctor_review: item.doctor_review
             };
         });
 
@@ -272,72 +275,6 @@ export const updateDoctorReviewService = async (diagnosisId, doctorId, review) =
     }
 };
 
-/*  GET ALL REVIEWED PATIENTS  */
-export const getReviewedPatientsService = async () => {
-    try {
-        const { data, error } = await supabaseAdmin
-            .from("diagnosis_results")
-            .select(`
-                id,
-                user_id,
-                full_name,
-                probability,
-                diagnosis_result,
-                symptoms,
-                affected_area,
-                age,
-                gender,
-                image_url,
-                latitude,
-                longitude,
-                number,
-                created_at,
-                doctor_review,
-                reviewed_by,
-                reviewed_at
-            `)
-            .not('doctor_review', 'is', null)
-            .order("reviewed_at", { ascending: false });
-
-        if (error) throw new Error(error.message);
-
-        // Enrich with profile data and image URLs
-        const enrichedData = await Promise.all(data.map(async (item) => {
-            // Get profile data
-            const { data: profile } = await supabaseAdmin
-                .from("profiles")
-                .select("email, phone, role")
-                .eq("id", item.user_id)
-                .single();
-
-            // Get image URL
-            let imageUrl = null;
-            if (item.image_url) {
-                if (item.image_url.startsWith("http")) {
-                    imageUrl = item.image_url;
-                } else {
-                    const { data: urlData } = supabaseAdmin.storage
-                        .from("Skin_images")
-                        .getPublicUrl(item.image_url);
-                    imageUrl = urlData.publicUrl;
-                }
-            }
-
-            return {
-                ...item,
-                email: profile?.email || null,
-                phone: profile?.phone || item.number || null,
-                role: profile?.role || "patient",
-                image_url: imageUrl
-            };
-        }));
-
-        return enrichedData;
-    } catch (error) {
-        console.error("GET REVIEWED PATIENTS ERROR:", error.message);
-        throw error;
-    }
-};
 
 /*  GET PATIENT BY ID WITH REVIEW  */
 export const getPatientByIdService = async (diagnosisId) => {

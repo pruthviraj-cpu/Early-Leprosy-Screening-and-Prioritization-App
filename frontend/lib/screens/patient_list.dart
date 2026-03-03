@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class PatientListItem extends StatefulWidget {
+class PatientListItem extends StatelessWidget {
   final Map<String, dynamic> patient;
   final VoidCallback onTap;
   final bool isDesktop;
@@ -13,53 +13,200 @@ class PatientListItem extends StatefulWidget {
     required this.isDesktop,
   });
 
-  @override
-  State<PatientListItem> createState() => _PatientListItemState();
-}
+  String _getStatusText(String? review) {
+    if (review == null || review.isEmpty) {
+      return "Pending Review";
+    }
+    
+    switch (review.toLowerCase()) {
+      case 'high':
+        return "High Priority";
+      case 'medium':
+        return "Medium Priority";
+      case 'low':
+        return "Low Priority";
+      default:
+        return "Reviewed";
+    }
+  }
 
-class _PatientListItemState extends State<PatientListItem> {
-  bool _hovering = false;
+  Color _getStatusColor(String? review) {
+    if (review == null || review.isEmpty) {
+      return const Color(0xff94A3B8); // Gray for pending
+    }
+    
+    switch (review.toLowerCase()) {
+      case 'high':
+        return const Color(0xffEF4444); // Red
+      case 'medium':
+        return const Color(0xffF59E0B); // Orange
+      case 'low':
+        return const Color(0xff10B981); // Green
+      default:
+        return const Color(0xff10B981); // Green
+    }
+  }
+
+  IconData _getStatusIcon(String? review) {
+    if (review == null || review.isEmpty) {
+      return Icons.pending_outlined;
+    }
+    return Icons.check_circle;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final diagnosis = widget.patient["latest_diagnosis"];
-    final probability = (diagnosis?["probability"] as num?)?.toDouble() ?? 0.0;
-    final result = diagnosis?["diagnosis_result"];
-    final imageUrl = diagnosis?["image_url"];
-    final createdAt = diagnosis?["created_at"];
+    final hasReview = patient["doctor_review"] != null && 
+                     patient["doctor_review"].toString().isNotEmpty;
+    
+    // Safely parse date
+    String formattedDate = "Unknown date";
+    try {
+      final date = DateTime.parse(patient["created_at"]);
+      formattedDate = DateFormat('MMM dd, yyyy').format(date);
+    } catch (e) {
+      print("Error parsing date: ${patient["created_at"]}");
+    }
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+        onTap: onTap,
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
-            color: _hovering ? const Color(0xffF1F5F9) : Colors.white,
+            color: Colors.white,
             border: const Border(bottom: BorderSide(color: Color(0xffE2E8F0))),
-            boxShadow: _hovering && widget.isDesktop
-                ? [
-                    BoxShadow(
-                      color: const Color(0xff0F172A).withOpacity(0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : [],
           ),
           child: Row(
             children: [
-              Checkbox(value: false, onChanged: (_) {}),
-              const SizedBox(width: 12),
-              _buildAvatar(imageUrl),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildCenterContent(diagnosis, result, probability),
+              // Checkbox/Tick indicator
+              Container(
+                width: 24,
+                height: 24,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: hasReview 
+                      ? _getStatusColor(patient["doctor_review"]).withOpacity(0.1)
+                      : Colors.grey.shade100,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: hasReview 
+                        ? _getStatusColor(patient["doctor_review"]).withOpacity(0.3)
+                        : Colors.grey.shade300,
+                  ),
+                ),
+                child: hasReview
+                    ? Icon(
+                        Icons.check,
+                        size: 16,
+                        color: _getStatusColor(patient["doctor_review"]),
+                      )
+                    : null,
               ),
-              const SizedBox(width: 12),
-              _buildRightSection(createdAt, probability, result),
+              
+              // Avatar
+              _buildAvatar(),
+              const SizedBox(width: 16),
+              
+              // Patient Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      patient["full_name"] ?? "Unknown Patient",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Color(0xff0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${patient["symptoms"] ?? "No symptoms"} • ${patient["affected_area"] ?? "Unknown area"}",
+                      style: const TextStyle(
+                        color: Color(0xff64748B),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Status Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(patient["doctor_review"]).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _getStatusColor(patient["doctor_review"]).withOpacity(0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getStatusIcon(patient["doctor_review"]),
+                            size: 14,
+                            color: _getStatusColor(patient["doctor_review"]),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getStatusText(patient["doctor_review"]),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: _getStatusColor(patient["doctor_review"]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Date and Result
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xff64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getResultColor(patient["diagnosis_result"]).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      patient["diagnosis_result"] ?? "Pending",
+                      style: TextStyle(
+                        color: _getResultColor(patient["diagnosis_result"]),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right,
+                color: const Color(0xff94A3B8),
+                size: isDesktop ? 24 : 20,
+              ),
             ],
           ),
         ),
@@ -67,28 +214,29 @@ class _PatientListItemState extends State<PatientListItem> {
     );
   }
 
-  Widget _buildAvatar(String? imageUrl) {
-    if (imageUrl != null) {
+  Widget _buildAvatar() {
+    if (patient["image_url"] != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.network(
-          imageUrl,
+          patient["image_url"],
           width: 50,
           height: 50,
           fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildInitialsAvatar();
+          },
         ),
       );
     }
 
-    final initials = widget.patient["full_name"]
-        .toString()
-        .trim()
-        .split(" ")
-        .map((e) => e[0])
-        .take(2)
-        .join()
-        .toUpperCase();
+    return _buildInitialsAvatar();
+  }
 
+  Widget _buildInitialsAvatar() {
+    final name = patient["full_name"] ?? "U";
+    final initials = name.isNotEmpty ? name[0].toUpperCase() : "U";
+    
     return Container(
       width: 50,
       height: 50,
@@ -101,114 +249,23 @@ class _PatientListItemState extends State<PatientListItem> {
         initials,
         style: const TextStyle(
           fontWeight: FontWeight.bold,
+          fontSize: 18,
           color: Color(0xff0F172A),
         ),
       ),
     );
   }
 
-  Widget _buildCenterContent(
-    Map<String, dynamic>? diagnosis,
-    String? result,
-    double probability,
-  ) {
-    final symptoms = diagnosis?["symptoms"] ?? "";
-    final area = diagnosis?["affected_area"] ?? "";
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.patient["full_name"] ?? "",
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: Color(0xff0F172A),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "$symptoms • $area",
-          style: const TextStyle(color: Color(0xff64748B)),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          _getPreviewText(result, probability),
-          style: const TextStyle(color: Color(0xff475569), fontSize: 13),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRightSection(
-    String? createdAt,
-    double probability,
-    String? result,
-  ) {
-    final formattedDate = createdAt != null
-        ? DateFormat("d MMM yyyy").format(DateTime.parse(createdAt))
-        : "";
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          formattedDate,
-          style: const TextStyle(fontSize: 12, color: Color(0xff64748B)),
-        ),
-        const SizedBox(height: 8),
-        _buildStatusBadge(probability, result),
-      ],
-    );
-  }
-
-  Widget _buildStatusBadge(double probability, String? result) {
-    if (result == null) {
-      return _badge("Pending Review", const Color(0xffF59E0B));
+  Color _getResultColor(String? result) {
+    if (result == null) return const Color(0xff94A3B8);
+    
+    switch (result.toUpperCase()) {
+      case 'LEPROSY':
+        return const Color(0xffEF4444);
+      case 'NOT LEPROSY':
+        return const Color(0xff10B981);
+      default:
+        return const Color(0xff94A3B8);
     }
-
-    if (probability == 0) {
-      return _badge("Awaiting AI Result", const Color(0xff64748B));
-    }
-
-    if (probability > 0.8) {
-      return _badge(
-        "${(probability * 100).toStringAsFixed(0)}%",
-        const Color(0xffEF4444),
-      );
-    } else if (probability > 0.5) {
-      return _badge(
-        "${(probability * 100).toStringAsFixed(0)}%",
-        const Color(0xffF59E0B),
-      );
-    } else {
-      return _badge(
-        "${(probability * 100).toStringAsFixed(0)}%",
-        const Color(0xff10B981),
-      );
-    }
-  }
-
-  Widget _badge(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  String _getPreviewText(String? result, double probability) {
-    if (result == null) return "Diagnosis pending review";
-    if (probability == 0) return "AI processing...";
-    return "$result • ${(probability * 100).toStringAsFixed(0)}% confidence";
   }
 }

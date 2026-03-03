@@ -1,4 +1,4 @@
-import { saveDiagnosisService, getUserDiagnosesService, createDiagnosisService, getAllPatientsService,getReviewedPatientsService,updateDoctorReviewService ,getPatientByIdService} from "../services/diagnosis.service.js";
+import { saveDiagnosisService, getUserDiagnosesService, createDiagnosisService, getAllPatientsService,updateDoctorReviewService ,getPatientByIdService} from "../services/diagnosis.service.js";
 import fs from "fs";
 
 /* analyze (HF only) */
@@ -169,32 +169,6 @@ export const updateDoctorReview = async (req, res) => {
     }
 };
 
-/*  GET ALL REVIEWED PATIENTS  */
-export const getReviewedPatients = async (req, res) => {
-    try {
-        // Check if user is doctor
-        if (req.user.role !== "doctor") {
-            return res.status(403).json({
-                success: false,
-                message: "Access restricted to doctors only"
-            });
-        }
-
-        const patients = await getReviewedPatientsService();
-
-        return res.status(200).json({
-            success: true,
-            count: patients.length,
-            data: patients
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-};
 
 /*  GET PATIENT BY ID  */
 export const getPatientById = async (req, res) => {

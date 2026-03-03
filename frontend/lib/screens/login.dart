@@ -256,7 +256,6 @@ class _MyLoginState extends State<MyLogin> {
                             'Sign Up',
                             style: TextStyle(
                               decoration: TextDecoration.underline,
-                              
                             ),
                           ),
                         )

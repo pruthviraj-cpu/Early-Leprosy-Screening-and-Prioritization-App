@@ -1,4 +1,4 @@
-import { saveDiagnosisService, getUserDiagnosesService, createDiagnosisService, getAllPatientsService } from "../services/diagnosis.service.js";
+import { saveDiagnosisService, getUserDiagnosesService, createDiagnosisService, getAllPatientsService,getReviewedPatientsService,updateDoctorReviewService ,getPatientByIdService} from "../services/diagnosis.service.js";
 import fs from "fs";
 
 /* analyze (HF only) */
@@ -119,6 +119,102 @@ export const getAllPatients = async (req, res) => {
             count: patients.length,
             data: patients
         });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+
+export const updateDoctorReview = async (req, res) => {
+    try {
+        // Check if user is doctor
+        if (req.user.role !== "doctor") {
+            return res.status(403).json({
+                success: false,
+                message: "Only doctors can update reviews"
+            });
+        }
+
+        const { diagnosisId } = req.params;
+        const { doctor_review } = req.body;
+        const doctorId = req.user.id;
+
+        if (!diagnosisId || !doctor_review) {
+            return res.status(400).json({
+                success: false,
+                message: "Diagnosis ID and review are required"
+            });
+        }
+
+        const updatedDiagnosis = await updateDoctorReviewService(
+            diagnosisId,
+            doctorId,
+            doctor_review
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Doctor review updated successfully",
+            data: updatedDiagnosis
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+/*  GET ALL REVIEWED PATIENTS  */
+export const getReviewedPatients = async (req, res) => {
+    try {
+        // Check if user is doctor
+        if (req.user.role !== "doctor") {
+            return res.status(403).json({
+                success: false,
+                message: "Access restricted to doctors only"
+            });
+        }
+
+        const patients = await getReviewedPatientsService();
+
+        return res.status(200).json({
+            success: true,
+            count: patients.length,
+            data: patients
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+/*  GET PATIENT BY ID  */
+export const getPatientById = async (req, res) => {
+    try {
+        const { diagnosisId } = req.params;
+
+        if (!diagnosisId) {
+            return res.status(400).json({
+                success: false,
+                message: "Diagnosis ID is required"
+            });
+        }
+
+        const patient = await getPatientByIdService(diagnosisId);
+
+        return res.status(200).json({
+            success: true,
+            data: patient
+        });
+
     } catch (error) {
         return res.status(500).json({
             success: false,

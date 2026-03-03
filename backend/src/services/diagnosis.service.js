@@ -199,91 +199,6 @@ export const getAllPatientsService = async () => {
         profiles?.forEach(profile => {
             profilesMap.set(profile.id, profile);
         });
-
-
-        // !just changing for now will update further
-        // Group by patient
-        // const patientsMap = new Map();
-
-        // diagnoses.forEach((item) => {
-        //     const patientId = item.user_id;
-        //     const profile = profilesMap.get(patientId);
-
-        //     // ✅ FIX: Handle image URL properly
-        //     let imageUrl = null;
-        //     if (item.image_url) {
-        //         // Check if it's already a full URL or just a path
-        //         if (item.image_url.startsWith('http')) {
-        //             imageUrl = item.image_url;
-        //         } else {
-        //             const { data: publicUrlData } = supabaseAdmin.storage
-        //                 .from("Skin_images")
-        //                 .getPublicUrl(item.image_url);
-        //             imageUrl = publicUrlData.publicUrl;
-        //         }
-        //     }
-
-        //     if (!patientsMap.has(patientId)) {
-        //         patientsMap.set(patientId, {
-        //             patient_id: patientId,
-        //             full_name: item.full_name,
-        //             email: profile?.email || null,
-        //             phone: profile?.phone || item.number || null, // Use number from diagnosis if available
-        //             role: profile?.role || 'patient',
-        //             age: item.age,
-        //             gender: item.gender,
-        //             latest_diagnosis: {
-        //                 id: item.id,
-        //                 probability: item.probability,
-        //                 diagnosis_result: item.diagnosis_result,
-        //                 symptoms: item.symptoms,
-        //                 affected_area: item.affected_area,
-        //                 image_url: imageUrl,
-        //                 latitude: item.latitude,
-        //                 longitude: item.longitude,
-        //                 created_at: item.created_at
-        //             },
-        //             diagnosis_count: 1,
-        //             all_diagnoses: [{
-        //                 id: item.id,
-        //                 probability: item.probability,
-        //                 diagnosis_result: item.diagnosis_result,
-        //                 created_at: item.created_at,
-        //                 image_url: imageUrl
-        //             }]
-        //         });
-        //     } else {
-        //         const patient = patientsMap.get(patientId);
-        //         patient.diagnosis_count += 1;
-
-        //         patient.all_diagnoses.push({
-        //             id: item.id,
-        //             probability: item.probability,
-        //             diagnosis_result: item.diagnosis_result,
-        //             created_at: item.created_at,
-        //             image_url: imageUrl
-        //         });
-
-        //         // Update latest diagnosis if newer
-        //         if (new Date(item.created_at) > new Date(patient.latest_diagnosis.created_at)) {
-        //             patient.latest_diagnosis = {
-        //                 id: item.id,
-        //                 probability: item.probability,
-        //                 diagnosis_result: item.diagnosis_result,
-        //                 symptoms: item.symptoms,
-        //                 affected_area: item.affected_area,
-        //                 image_url: imageUrl,
-        //                 latitude: item.latitude,
-        //                 longitude: item.longitude,
-        //                 created_at: item.created_at
-        //             };
-        //         }
-        //     }
-        // });
-
-        // const patients = Array.from(patientsMap.values());
-        // return patients;
-        // Return all diagnoses as flat list (one case per item)
         const enrichedDiagnoses = diagnoses.map((item) => {
             const profile = profilesMap.get(item.user_id);
 
@@ -323,6 +238,165 @@ export const getAllPatientsService = async () => {
 
     } catch (error) {
         console.error("GET ALL PATIENTS ERROR:", error.message);
+        throw error;
+    }
+};
+
+// Add these to your existing diagnosis.service.js file
+
+/*  UPDATE DOCTOR REVIEW  */
+export const updateDoctorReviewService = async (diagnosisId, doctorId, review) => {
+    try {
+        // Validate review value
+        if (!['high', 'medium', 'low'].includes(review)) {
+            throw new Error("Invalid review value. Must be high, medium, or low");
+        }
+
+        const { data, error } = await supabaseAdmin
+            .from("diagnosis_results")
+            .update({ 
+                doctor_review: review,
+                reviewed_by: doctorId,
+                reviewed_at: new Date().toISOString()
+            })
+            .eq("id", diagnosisId)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        return data;
+    } catch (error) {
+        console.error("UPDATE DOCTOR REVIEW ERROR:", error.message);
+        throw error;
+    }
+};
+
+/*  GET ALL REVIEWED PATIENTS  */
+export const getReviewedPatientsService = async () => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from("diagnosis_results")
+            .select(`
+                id,
+                user_id,
+                full_name,
+                probability,
+                diagnosis_result,
+                symptoms,
+                affected_area,
+                age,
+                gender,
+                image_url,
+                latitude,
+                longitude,
+                number,
+                created_at,
+                doctor_review,
+                reviewed_by,
+                reviewed_at
+            `)
+            .not('doctor_review', 'is', null)
+            .order("reviewed_at", { ascending: false });
+
+        if (error) throw new Error(error.message);
+
+        // Enrich with profile data and image URLs
+        const enrichedData = await Promise.all(data.map(async (item) => {
+            // Get profile data
+            const { data: profile } = await supabaseAdmin
+                .from("profiles")
+                .select("email, phone, role")
+                .eq("id", item.user_id)
+                .single();
+
+            // Get image URL
+            let imageUrl = null;
+            if (item.image_url) {
+                if (item.image_url.startsWith("http")) {
+                    imageUrl = item.image_url;
+                } else {
+                    const { data: urlData } = supabaseAdmin.storage
+                        .from("Skin_images")
+                        .getPublicUrl(item.image_url);
+                    imageUrl = urlData.publicUrl;
+                }
+            }
+
+            return {
+                ...item,
+                email: profile?.email || null,
+                phone: profile?.phone || item.number || null,
+                role: profile?.role || "patient",
+                image_url: imageUrl
+            };
+        }));
+
+        return enrichedData;
+    } catch (error) {
+        console.error("GET REVIEWED PATIENTS ERROR:", error.message);
+        throw error;
+    }
+};
+
+/*  GET PATIENT BY ID WITH REVIEW  */
+export const getPatientByIdService = async (diagnosisId) => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from("diagnosis_results")
+            .select(`
+                id,
+                user_id,
+                full_name,
+                probability,
+                diagnosis_result,
+                symptoms,
+                affected_area,
+                age,
+                gender,
+                image_url,
+                latitude,
+                longitude,
+                number,
+                created_at,
+                doctor_review,
+                reviewed_by,
+                reviewed_at
+            `)
+            .eq("id", diagnosisId)
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        // Get profile data
+        const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("email, phone, role")
+            .eq("id", data.user_id)
+            .single();
+
+        // Get image URL
+        let imageUrl = null;
+        if (data.image_url) {
+            if (data.image_url.startsWith("http")) {
+                imageUrl = data.image_url;
+            } else {
+                const { data: urlData } = supabaseAdmin.storage
+                    .from("Skin_images")
+                    .getPublicUrl(data.image_url);
+                imageUrl = urlData.publicUrl;
+            }
+        }
+
+        return {
+            ...data,
+            email: profile?.email || null,
+            phone: profile?.phone || data.number || null,
+            role: profile?.role || "patient",
+            image_url: imageUrl
+        };
+    } catch (error) {
+        console.error("GET PATIENT BY ID ERROR:", error.message);
         throw error;
     }
 };

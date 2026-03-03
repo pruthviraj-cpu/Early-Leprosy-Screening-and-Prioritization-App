@@ -32,18 +32,18 @@ class PatientListItem extends StatelessWidget {
 
   Color _getStatusColor(String? review) {
     if (review == null || review.isEmpty) {
-      return const Color(0xff94A3B8); // Gray for pending
+      return const Color(0xff94A3B8);
     }
     
     switch (review.toLowerCase()) {
       case 'high':
-        return const Color(0xffEF4444); // Red
+        return const Color(0xffEF4444);
       case 'medium':
-        return const Color(0xffF59E0B); // Orange
+        return const Color(0xffF59E0B);
       case 'low':
-        return const Color(0xff10B981); // Green
+        return const Color(0xff10B981);
       default:
-        return const Color(0xff10B981); // Green
+        return const Color(0xff10B981);
     }
   }
 
@@ -52,6 +52,13 @@ class PatientListItem extends StatelessWidget {
       return Icons.pending_outlined;
     }
     return Icons.check_circle;
+  }
+
+  String _getDiagnosisDisplay(String? result) {
+    if (result == null) return "Pending";
+    if (result.toUpperCase() == 'LEPROSY') return "Leprosy";
+    if (result.toUpperCase() == 'NOT LEPROSY') return "Not Leprosy";
+    return result;
   }
 
   @override
@@ -80,7 +87,7 @@ class PatientListItem extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Checkbox/Tick indicator
+              // Status Indicator
               Container(
                 width: 24,
                 height: 24,
@@ -129,6 +136,8 @@ class PatientListItem extends StatelessWidget {
                         color: Color(0xff64748B),
                         fontSize: 14,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     // Status Badge
@@ -190,7 +199,7 @@ class PatientListItem extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      patient["diagnosis_result"] ?? "Pending",
+                      _getDiagnosisDisplay(patient["diagnosis_result"]),
                       style: TextStyle(
                         color: _getResultColor(patient["diagnosis_result"]),
                         fontSize: 12,

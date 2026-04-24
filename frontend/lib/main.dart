@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/services/secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/chat/model/chat_message.dart';
 import 'models/diagnosis_result.dart';
@@ -18,7 +20,6 @@ import 'features/navigation/doctor_navigation.dart';
 
 import 'screens/doctor_home.dart';
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -28,35 +29,48 @@ Future<void> main() async {
   Hive.registerAdapter(DiagnosisResultAdapter());
   Hive.registerAdapter(UserProfileAdapter());
 
-  // 🔹 Only global boxes
   await Hive.openBox<UserProfile>('profile');
   await Hive.openBox<DiagnosisResult>('diagnosis');
 
-  runApp(const MyApp());
+  final token = await SecureStorage.getToken();
+  final role = await SecureStorage.getUserRole();
+
+  runApp(MyApp(isLoggedIn: token != null, role: role));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+  final String? role;
+
+  const MyApp({super.key, required this.isLoggedIn, this.role});
+
+  String _getInitialRoute() {
+    if (!isLoggedIn) return 'login';
+
+    if (role == 'doctor') return 'doctor_main';
+
+    return 'main';
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: 'login',
+      initialRoute: _getInitialRoute(),
       routes: {
         'login': (_) => MyLogin(),
         'register': (_) => MyRegister(),
-        // 'home': (_) => const HomePage(),
-        // 'chat': (_) => const ChatScreen(),
-        // changes for new feature navigation to profile for completion
+
         'main': (context) {
           final index = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
           return BottomNavScreen(initialIndex: index);
         },
+
         'doctor_main': (context) {
           final index = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
           return DoctorBottomNavScreen(initialIndex: index);
         },
+
         "doctor_details": (context) {
           final patient =
               ModalRoute.of(context)!.settings.arguments

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:frontend/services/secure_storage.dart';
 import 'package:frontend/services/cache_service.dart';
 import 'package:frontend/utils/app_snackbar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MyLogin extends StatefulWidget {
   const MyLogin({super.key});
@@ -25,6 +26,11 @@ class _MyLoginState extends State<MyLogin> {
   String _selectedRole = "normal_user";
 
   final List<String> _roles = ["normal_user", "doctor"];
+
+  Future<void> saveLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isLoggedIn', true);
+  }
 
   /// 🔹 Login with validation
   Future<void> loginUser() async {
@@ -53,54 +59,37 @@ class _MyLoginState extends State<MyLogin> {
       final response = await http.post(
         Uri.parse('https://skin-buddy.onrender.com/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-          "role": _selectedRole,
-        }),
+        body: jsonEncode({"email": email, "password": password}),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        print("LOGIN SUCCESS: $data");
+
         await SecureStorage.saveToken(data['token']);
         await SecureStorage.saveUserId(data['user']['id']);
         await SecureStorage.saveUserRole(data['user']['role']);
-        await SecureStorage.saveIsProfileCompleted(
-          data['user']['is_profile_completed'] ?? false,
-        );
 
-        // 🔹 GET USER ID
-        final userId = data['user']['id'];
+        await saveLogin();
+
         final role = data['user']['role'];
 
-        // 🔹 GET PROFILE COMPLETION STATUS
-        final is_profile_completed =
-            data['user']['is_profile_completed'] ?? false;
-
-        // 🔹 OPEN USER-SPECIFIC CHAT BOX
-        await CacheService.openUserChatBox(userId);
-
         if (role == "doctor") {
-          if (is_profile_completed) {
-            Navigator.pushReplacementNamed( context,'doctor_main',arguments: 0,);
-            AppSnackbar.showSuccess(context, "Login successfull");
-          } else {
-            Navigator.pushReplacementNamed(context,'doctor_main', arguments: 1,);
-            AppSnackbar.showInfo(context, "Please complete your profile first!");
-          }
+          Navigator.pushReplacementNamed(context, 'doctor_main');
         } else {
-          if (is_profile_completed) {
-            Navigator.pushReplacementNamed(context, 'main', arguments: 0);
-            AppSnackbar.showSuccess(context, "Login successfull");
-          } else {
-            Navigator.pushReplacementNamed(context, 'main', arguments: 2);
-            AppSnackbar.showInfo(context, "Please complete your profile first!");
-          }
+          Navigator.pushReplacementNamed(context, 'main');
         }
+
+        AppSnackbar.showSuccess(context, "Login successful");
       } else {
-        // _showError(data['error'] ?? 'Login failed');
-        AppSnackbar.showError(context, "Login failed");
+        print("ERROR STATUS: ${response.statusCode}");
+        print("ERROR BODY: ${response.body}");
+
+        AppSnackbar.showError(
+          context,
+          data['message'] ?? data['error'] ?? "Login failed",
+        );
       }
     } catch (e) {
       _showError("Server not reachable");
@@ -251,14 +240,15 @@ class _MyLoginState extends State<MyLogin> {
                       TextButton(
                         onPressed: () {
                           Navigator.pushNamed(context, 'register');
-                        },child: Center(
+                        },
+                        child: Center(
                           child: const Text(
                             'Sign Up',
                             style: TextStyle(
                               decoration: TextDecoration.underline,
                             ),
                           ),
-                        )
+                        ),
                       ),
                       // TextButton(
                       //   onPressed: () {},

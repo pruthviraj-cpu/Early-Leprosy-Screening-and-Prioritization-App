@@ -31,6 +31,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  shared_preferences: ^2.2.2
+
   # Networking
   dio: ^5.4.0
 

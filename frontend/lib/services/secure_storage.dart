@@ -1,9 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 class SecureStorage {
   static final _storage = FlutterSecureStorage();
 
-  // Token methods
   static Future<void> saveToken(String token) async {
     await _storage.write(key: 'token', value: token);
   }
@@ -12,11 +10,6 @@ class SecureStorage {
     return await _storage.read(key: 'token');
   }
 
-  static Future<void> deleteToken() async {
-    await _storage.delete(key: 'token');
-  }
-
-  // User ID methods
   static Future<void> saveUserId(String userId) async {
     await _storage.write(key: 'userId', value: userId);
   }
@@ -25,15 +18,14 @@ class SecureStorage {
     return await _storage.read(key: 'userId');
   }
 
-  static Future<void> deleteUserId() async {
-    await _storage.delete(key: 'userId');
-  }
-
   static Future<void> saveUserRole(String role) async {
     await _storage.write(key: 'user_role', value: role);
   }
 
-  // storing bool value to check if profile is completed or not
+  static Future<String?> getUserRole() async {
+    return await _storage.read(key: 'user_role');
+  }
+
   static Future<void> saveIsProfileCompleted(bool isCompleted) async {
     await _storage.write(
       key: 'is_profile_completed',
@@ -41,8 +33,7 @@ class SecureStorage {
     );
   }
 
-  // Clear all storage (for logout)
-  // static Future<void> clearAll() async {
-  //   await _storage.deleteAll();
-  // }
+  static Future<void> clearAll() async {
+    await _storage.deleteAll();
+  }
 }

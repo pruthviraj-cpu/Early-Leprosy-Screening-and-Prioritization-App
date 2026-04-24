@@ -6,6 +6,7 @@ import '../service/profile_cache_service.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_card.dart';
 import '../../../services/secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -34,7 +35,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _initializeProfile() async {
     try {
-      // Get userId from SecureStorage
       _userId = await SecureStorage.getUserId();
 
       if (_userId == null) {
@@ -45,18 +45,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
 
-      // Initialize services and controller
       final cacheService = ProfileCacheService();
       final profileService = ProfileService(cacheService);
       _controller = ProfileController(profileService: profileService);
 
-      // Initialize with fetch from backend
-      _controller.initialize(_userId!, fetchFromBackend: true);
+      // ✅ Load from cache first (fast)
+      await _controller.initialize(_userId!, fetchFromBackend: false);
+
+      // ✅ Listen for updates
       _controller.addListener(_onProfileUpdated);
 
       setState(() {
         _isLoading = false;
       });
+
+      // ✅ Fetch latest data in background
+      _controller.syncProfile();
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load profile: $e';
@@ -236,10 +240,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
+    // Clear profile cache
     await _controller.clearProfile();
+
+    // 🔥 Clear secure storage (token, userId, role)
     // await SecureStorage.clearAll();
 
-    // Navigate to login screen
+    // 🔥 Clear shared preferences (isLoggedIn)
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    // Navigate to login
     Navigator.pushReplacementNamed(context, 'login');
   }
 

@@ -1,6 +1,7 @@
 // src/server.js - ES Module version
 import dotenv from 'dotenv';
 import app from './app.js';  // Note: .js extension and default import
+import { startReminderScheduler } from "./utility/reminderScheduler.js";
 
 dotenv.config();
 
@@ -19,4 +20,5 @@ app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ Supabase connected`);
   console.log(`✅ Health check: http://0.0.0.0:${PORT}/health`);
+  startReminderScheduler();
 });

@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../model/user_profile.dart';
+
+const _blue      = Color(0xFF1A73E8);
+const _blueLight = Color(0xFFE8F0FE);
+const _surface   = Color(0xFFFFFFFF);
+const _fill      = Color(0xFFF8F9FA);
+const _border    = Color(0xFFE8EAED);
+const _textPri   = Color(0xFF1F1F1F);
+const _textSec   = Color(0xFF5F6368);
+const _textHint  = Color(0xFF9AA0A6);
 
 class ProfileInfoCard extends StatelessWidget {
   final TextEditingController nameController;
@@ -22,233 +32,231 @@ class ProfileInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xff0F172A).withOpacity(0.04),
-            blurRadius: 30,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: _surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xffF0FDFA),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: Color(0xff0EA5A4),
-                  size: 20,
-                ),
+          // ── Section header ───────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'Personal Information',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _blue,
+                letterSpacing: 0.8,
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'Personal Information',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xff0F172A),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 20),
+          const Divider(height: 1, color: _border),
 
-          // Full Name
-          _buildInfoRow(
-            icon: Icons.person_outline,
+          _Row(
+            icon: Icons.person_outline_rounded,
             label: 'Full Name',
-            value: profile?.fullName ?? 'Not set',
+            value: profile?.fullName,
+            controller: nameController,
             isEditing: isEditing,
           ),
+          const Divider(height: 1, indent: 56, color: _border),
 
-          const Divider(height: 30, color: Color(0xffF1F5F9)),
-
-          // Age
-          _buildInfoRow(
+          _Row(
             icon: Icons.cake_outlined,
             label: 'Age',
-            value: profile?.age?.toString() ?? 'Not set',
+            value: profile?.age?.toString(),
+            controller: ageController,
             isEditing: isEditing,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
+          const Divider(height: 1, indent: 56, color: _border),
 
-          const Divider(height: 30, color: Color(0xffF1F5F9)),
-
-          // Gender
-          _buildInfoRow(
-            icon: Icons.transgender_outlined,
-            label: 'Gender',
-            value: profile?.gender ?? 'Not set',
+          _GenderRow(
+            value: profile?.gender,
             isEditing: isEditing,
-            isDropdown: true,
-            dropdownOptions: const ['Male', 'Female', 'Other'],
             onChanged: onGenderChanged,
           ),
+          const Divider(height: 1, indent: 56, color: _border),
 
-          const Divider(height: 30, color: Color(0xffF1F5F9)),
-
-          // Phone Number
-          _buildInfoRow(
+          _Row(
             icon: Icons.phone_outlined,
-            label: 'Phone Number',
-            value: profile?.phoneNumber ?? 'Not set',
+            label: 'Phone',
+            value: profile?.phoneNumber,
+            controller: phoneController,
             isEditing: isEditing,
             keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required bool isEditing,
-    bool isDropdown = false,
-    List<String>? dropdownOptions,
-    TextInputType keyboardType = TextInputType.text,
-    Function(String?)? onChanged,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xffF8FAFC),
-            borderRadius: BorderRadius.circular(12),
+// ── Single info row ───────────────────────────────────────────────────────────
+class _Row extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? value;
+  final TextEditingController controller;
+  final bool isEditing;
+  final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+
+  const _Row({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.controller,
+    required this.isEditing,
+    this.keyboardType = TextInputType.text,
+    this.inputFormatters,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          // Icon
+          SizedBox(
+            width: 40,
+            child: Icon(icon, size: 20, color: const Color(0xFF5F6368)),
           ),
-          child: Icon(icon, color: const Color(0xff64748B), size: 20),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: const Color(0xff64748B),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 6),
-              if (isEditing)
-                isDropdown
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xffF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xffE2E8F0)),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: value == 'Not set' ? null : value,
-                            isExpanded: true,
-                            hint: const Text(
-                              'Select gender',
-                              style: TextStyle(
-                                color: Color(0xff94A3B8),
-                                fontSize: 15,
-                              ),
-                            ),
-                            items: dropdownOptions
-                                ?.map(
-                                  (option) => DropdownMenuItem(
-                                    value: option,
-                                    child: Text(
-                                      option,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        color: Color(0xff0F172A),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: onChanged,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Color(0xff0F172A),
-                            ),
-                            dropdownColor: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            icon: const Icon(
-                              Icons.arrow_drop_down,
-                              color: Color(0xff64748B),
-                            ),
-                          ),
-                        ),
-                      )
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xffF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xffE2E8F0)),
-                        ),
-                        child: TextField(
-                          // !changes for name
-                          controller: label == 'Full Name'
-                              ? nameController
-                              : label == 'Age'
-                              ? ageController
-                              : phoneController,
-                          decoration: InputDecoration(
-                            hintText: 'Enter $label',
-                            hintStyle: const TextStyle(
-                              color: Color(0xff94A3B8),
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Color(0xff0F172A),
-                          ),
-                          keyboardType: keyboardType,
-                          onChanged: onChanged,
-                        ),
-                      )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xffF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    value,
+          const SizedBox(width: 0),
+          // Content
+          Expanded(
+            child: isEditing
+                ? TextField(
+                    controller: controller,
+                    keyboardType: keyboardType,
+                    inputFormatters: inputFormatters,
                     style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xff0F172A),
+                      fontSize: 14,
+                      color: _textPri,
                       fontWeight: FontWeight.w500,
                     ),
+                    decoration: InputDecoration(
+                      labelText: label,
+                      labelStyle:
+                          const TextStyle(color: _blue, fontSize: 12),
+                      hintText: 'Enter $label',
+                      hintStyle:
+                          const TextStyle(color: _textHint, fontSize: 14),
+                      border: InputBorder.none,
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 14),
+                      isDense: true,
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: _textSec,
+                                fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 2),
+                        Text(
+                          value?.isNotEmpty == true ? value! : '—',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: _textPri,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-            ],
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Gender dropdown row ───────────────────────────────────────────────────────
+class _GenderRow extends StatelessWidget {
+  final String? value;
+  final bool isEditing;
+  final Function(String?)? onChanged;
+
+  const _GenderRow({
+    required this.value,
+    required this.isEditing,
+    this.onChanged,
+  });
+
+  static const _options = ['Male', 'Female', 'Other'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 40,
+            child: Icon(Icons.wc_outlined, size: 20, color: Color(0xFF5F6368)),
+          ),
+          Expanded(
+            child: isEditing
+                ? DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: (_options.contains(value)) ? value : null,
+                      isExpanded: true,
+                      hint: const Text('Select Gender',
+                          style: TextStyle(color: _textHint, fontSize: 14)),
+                      style: const TextStyle(
+                          fontSize: 14,
+                          color: _textPri,
+                          fontWeight: FontWeight.w500),
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                          color: _textSec, size: 20),
+                      items: _options
+                          .map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(e),
+                              ))
+                          .toList(),
+                      onChanged: onChanged,
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Gender',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: _textSec,
+                                fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 2),
+                        Text(
+                          value?.isNotEmpty == true ? value! : '—',
+                          style: const TextStyle(
+                              fontSize: 14,
+                              color: _textPri,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

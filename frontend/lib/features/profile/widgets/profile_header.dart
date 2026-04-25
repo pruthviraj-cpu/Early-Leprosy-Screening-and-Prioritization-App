@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import '../model/user_profile.dart';
 
+// ─── Design tokens (matches app-wide Google blue theme) ──────────────────────
+const _blue      = Color(0xFF1A73E8);
+const _blueLight = Color(0xFFE8F0FE);
+const _bgPage    = Color(0xFFF6F8FC);
+const _textPri   = Color(0xFF1F1F1F);
+const _textSec   = Color(0xFF5F6368);
+
 class ProfileHeader extends StatelessWidget {
   final UserProfile? profile;
   final VoidCallback? onEditPhoto;
@@ -15,146 +22,99 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final initials = profile?.initials ?? 'U';
+    final name     = profile?.displayName ?? 'User';
+    final email    = profile?.email;
+
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xff0EA5A4).withOpacity(0.9),
-            const Color(0xff0891B2).withOpacity(0.8),
-          ],
-        ),
-      ),
+      width: double.infinity,
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 28),
       child: Column(
         children: [
-          const SizedBox(height: 20),
+          // ── Single clean circle avatar ─────────────────────────────────
           Stack(
-            alignment: Alignment.center,
+            alignment: Alignment.bottomRight,
             children: [
-              // Profile Avatar Container
               Container(
-                width: 120,
-                height: 120,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withOpacity(0.2),
-                      Colors.white.withOpacity(0.1),
-                    ],
-                  ),
+                  color: _blueLight,
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
+                    color: _blue.withOpacity(0.18),
                     width: 2,
                   ),
                 ),
-                child: Center(
-                  child: isLoading
-                      ? Container(
-                          width: 80,
-                          height: 80,
-                          padding: const EdgeInsets.all(16),
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : CircleAvatar(
-                          radius: 48,
-                          backgroundColor: Colors.white,
-                          child: Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  const Color(0xff0EA5A4),
-                                  const Color(0xff0891B2),
-                                ],
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                profile?.initials ?? 'U',
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
+                child: isLoading
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(_blue),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          initials,
+                          style: const TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w600,
+                            color: _blue,
+                            letterSpacing: 1,
                           ),
                         ),
-                ),
+                      ),
               ),
-              // Edit button overlay
+              // Edit badge (only in edit mode)
               if (onEditPhoto != null)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: GestureDetector(
-                    onTap: onEditPhoto,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.edit_outlined,
-                          size: 18,
-                          color: Color(0xff0EA5A4),
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: onEditPhoto,
+                  child: Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: _blue,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.edit_rounded,
+                      size: 13,
+                      color: Colors.white,
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 20),
+
+          const SizedBox(height: 14),
+
+          // ── Name ──────────────────────────────────────────────────────
           Text(
-            profile?.displayName ?? 'User',
+            name,
             style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: _textPri,
+              letterSpacing: -0.3,
             ),
           ),
-          if (profile?.email != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                profile!.email!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w500,
-                ),
+
+          // ── Email chip ────────────────────────────────────────────────
+          if (email != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              email,
+              style: const TextStyle(
+                fontSize: 13,
+                color: _textSec,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],
-          const SizedBox(height: 20),
         ],
       ),
     );

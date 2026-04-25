@@ -59,32 +59,71 @@ class _MyLoginState extends State<MyLogin> {
       final response = await http.post(
         Uri.parse('https://skin-buddy.onrender.com/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"email": email, "password": password}),
+        body: jsonEncode({
+          "email": email,
+          "password": password,
+          "role": _selectedRole,
+        }),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        print("LOGIN SUCCESS: $data");
-
         await SecureStorage.saveToken(data['token']);
         await SecureStorage.saveUserId(data['user']['id']);
         await SecureStorage.saveUserRole(data['user']['role']);
+        await SecureStorage.saveIsProfileCompleted(
+          data['user']['is_profile_completed'] ?? false,
+        );
 
-        await saveLogin();
-
+        // 🔹 GET USER ID
+        final userId = data['user']['id'];
         final role = data['user']['role'];
 
-        if (role == "doctor") {
-          Navigator.pushReplacementNamed(context, 'doctor_main');
-        } else {
-          Navigator.pushReplacementNamed(context, 'main');
-        }
+        // 🔹 GET PROFILE COMPLETION STATUS
+        final is_profile_completed =
+            data['user']['is_profile_completed'] ?? false;
 
-        AppSnackbar.showSuccess(context, "Login successful");
+        // 🔹 OPEN USER-SPECIFIC CHAT BOX
+        await CacheService.openUserChatBox(userId);
+
+        // save login
+        await saveLogin();
+
+        if (role == "doctor") {
+          if (is_profile_completed) {
+            Navigator.pushReplacementNamed(
+              context,
+              'doctor_main',
+              arguments: 0,
+            );
+            AppSnackbar.showSuccess(context, "Login successfull");
+          } else {
+            Navigator.pushReplacementNamed(
+              context,
+              'doctor_main',
+              arguments: 1,
+            );
+            AppSnackbar.showInfo(
+              context,
+              "Please complete your profile first!",
+            );
+          }
+        } else {
+          if (is_profile_completed) {
+            Navigator.pushReplacementNamed(context, 'main', arguments: 0);
+            AppSnackbar.showSuccess(context, "Login successfull");
+          } else {
+            Navigator.pushReplacementNamed(context, 'main', arguments: 2);
+            AppSnackbar.showInfo(
+              context,
+              "Please complete your profile first!",
+            );
+          }
+        }
       } else {
-        print("ERROR STATUS: ${response.statusCode}");
-        print("ERROR BODY: ${response.body}");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
 
         AppSnackbar.showError(
           context,

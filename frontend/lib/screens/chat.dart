@@ -5,6 +5,29 @@ import '../services/api_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 
+// ─── Design Tokens (Gemini-inspired) ──────────────────────────────────────────
+const _white        = Color(0xFFFFFFFF);
+const _bgPage       = Color(0xFFF0F4F9); // Gemini's subtle blue-tinted bg
+const _surfaceCard  = Color(0xFFFFFFFF);
+const _userBubble   = Color(0xFFE8F0FE); // Google blue-tinted user bubble
+const _userText     = Color(0xFF1F1F1F);
+const _aiText       = Color(0xFF1F1F1F);
+const _hintText     = Color(0xFF9AA0A6);
+const _iconGrey     = Color(0xFF5F6368);
+const _divider      = Color(0xFFE8EAED);
+const _accentBlue   = Color(0xFF1A73E8); // Google blue
+const _pendingAmber = Color(0xFFF9AB00);
+const _errorRed     = Color(0xFFD93025);
+const _successGreen = Color(0xFF188038);
+const _offlineBg    = Color(0xFFFEF7E0);
+const _offlineText  = Color(0xFF7D5700);
+
+// ─── Gemini sparkle gradient colors ───────────────────────────────────────────
+const _geminiBlue   = Color(0xFF4285F4);
+const _geminiRed    = Color(0xFFEA4335);
+const _geminiYellow = Color(0xFFFBBC05);
+const _geminiGreen  = Color(0xFF34A853);
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -12,41 +35,53 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   List<ChatMessage> chats = [];
   late final StreamSubscription<ConnectivityResult> _connectivitySub;
   bool _isSyncing = false;
   final ScrollController _scrollController = ScrollController();
+  bool _hasText = false;
+
+  // ── Animation for new messages ─────────────────────────────────────────────
+  final Map<String, AnimationController> _messageControllers = {};
 
   @override
   void initState() {
     super.initState();
     loadChats();
     listenToInternet();
-    
-    // Auto-scroll to bottom when new messages arrive
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom();
+    _controller.addListener(() {
+      setState(() => _hasText = _controller.text.trim().isNotEmpty);
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
+
+  AnimationController _getController(String id) {
+    if (!_messageControllers.containsKey(id)) {
+      final ctrl = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 280),
+      )..forward();
+      _messageControllers[id] = ctrl;
+    }
+    return _messageControllers[id]!;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // ── ALL LOGIC BELOW IS UNTOUCHED ─────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════════
 
   void listenToInternet() {
     _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
-      // FIXED: Check for ANY internet connection
-      if (result != ConnectivityResult.none) {
-        syncPendingMessages();
-      }
+      if (result != ConnectivityResult.none) syncPendingMessages();
     });
   }
 
   void loadChats() {
     final cachedChats = CacheService.getAllMessages();
-    // Sort by creation time for proper display
     cachedChats.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    setState(() {
-      chats = cachedChats;
-    });
+    setState(() => chats = cachedChats);
   }
 
   void _scrollToBottom() {
@@ -60,39 +95,26 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> syncPendingMessages() async {
-    // Prevent multiple concurrent syncs
     if (_isSyncing) return;
-    
     _isSyncing = true;
-    setState(() {}); // Update sync indicator
-    
+    setState(() {});
     try {
       final messages = CacheService.getAllMessages();
-      
-      // Get only pending user messages (not those already being sent)
-      final pendingMessages = messages.where(
-        (m) => m.role == 'user' && m.syncStatus == 'pending',
-      ).toList();
-      
+      final pendingMessages = messages
+          .where((m) => m.role == 'user' && m.syncStatus == 'pending')
+          .toList();
       if (pendingMessages.isEmpty) {
         _isSyncing = false;
         setState(() {});
         return;
       }
-      
       for (final msg in pendingMessages) {
         try {
-          // Mark as sending to prevent duplicate sends
           msg.syncStatus = 'sending';
           await msg.save();
-          
           final reply = await ApiService.sendChat(msg.message);
-          
-          // Update original message status
           msg.syncStatus = 'synced';
           await msg.save();
-          
-          // Create AI reply
           final aiMessage = ChatMessage(
             id: '${msg.id}_reply_${DateTime.now().millisecondsSinceEpoch}',
             role: 'ai',
@@ -100,27 +122,22 @@ class _ChatScreenState extends State<ChatScreen> {
             createdAt: DateTime.now(),
             syncStatus: 'synced',
           );
-          
           await CacheService.saveMessage(aiMessage);
-          
-          // Update UI
           if (mounted) {
             setState(() {
               chats.add(aiMessage);
-              // Sort again
               chats.sort((a, b) => a.createdAt.compareTo(b.createdAt));
             });
             _scrollToBottom();
           }
         } catch (e) {
-          print('Failed to sync message: $e');
-          // If send failed, mark as pending to retry later
+          debugPrint('Failed to sync message: $e');
           msg.syncStatus = 'pending';
           await msg.save();
         }
       }
     } catch (e) {
-      print('Sync error: $e');
+      debugPrint('Sync error: $e');
     } finally {
       _isSyncing = false;
       if (mounted) setState(() {});
@@ -129,7 +146,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> sendMessage() async {
     if (_controller.text.trim().isEmpty) return;
-
     final userMessage = ChatMessage(
       id: '${DateTime.now().millisecondsSinceEpoch}_user',
       role: 'user',
@@ -137,57 +153,23 @@ class _ChatScreenState extends State<ChatScreen> {
       createdAt: DateTime.now(),
       syncStatus: 'pending',
     );
-
-    // Clear input first
-    final messageText = _controller.text.trim();
     _controller.clear();
-
-    // 1️⃣ Save user message locally
     await CacheService.saveMessage(userMessage);
-
     setState(() {
       chats.add(userMessage);
       chats.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     });
-    
     _scrollToBottom();
-
-    // 2️⃣ Check connectivity and send if available
     final connectivity = await Connectivity().checkConnectivity();
-    // FIXED: Check for ANY internet connection
     final hasInternet = connectivity != ConnectivityResult.none;
-
     if (hasInternet) {
       await _sendToBackend(userMessage);
     } else {
-      // If offline, just save locally with pending status
-      // It will sync when internet comes back
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          backgroundColor: const Color(0xffF59E0B),
-          content: Row(
-            children: [
-              const Icon(
-                Icons.wifi_off_outlined,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Message saved offline. Will send when connected.',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          duration: const Duration(seconds: 2),
+        _buildSnackBar(
+          icon: Icons.wifi_off_rounded,
+          message: 'Message saved. Will send when connected.',
+          color: _pendingAmber,
         ),
       );
     }
@@ -195,17 +177,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendToBackend(ChatMessage userMessage) async {
     try {
-      // Mark as sending
       userMessage.syncStatus = 'sending';
       await userMessage.save();
-      
       final aiReply = await ApiService.sendChat(userMessage.message);
-
-      // Mark user message as synced
       userMessage.syncStatus = 'synced';
       await userMessage.save();
-
-      // Create AI response
       final aiMessage = ChatMessage(
         id: '${DateTime.now().millisecondsSinceEpoch}_ai',
         role: 'ai',
@@ -213,9 +189,7 @@ class _ChatScreenState extends State<ChatScreen> {
         createdAt: DateTime.now(),
         syncStatus: 'synced',
       );
-
       await CacheService.saveMessage(aiMessage);
-
       if (mounted) {
         setState(() {
           chats.add(aiMessage);
@@ -224,42 +198,54 @@ class _ChatScreenState extends State<ChatScreen> {
         _scrollToBottom();
       }
     } catch (e) {
-      print('Backend send error: $e');
-      // Mark as failed
+      debugPrint('Backend send error: $e');
       userMessage.syncStatus = 'failed';
       await userMessage.save();
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            backgroundColor: const Color(0xffEF4444),
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Failed to send message. Will retry when online.',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            duration: const Duration(seconds: 3),
+          _buildSnackBar(
+            icon: Icons.error_outline_rounded,
+            message: 'Failed to send. Will retry when online.',
+            color: _errorRed,
           ),
         );
       }
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // ── UI HELPERS ────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  SnackBar _buildSnackBar({
+    required IconData icon,
+    required String message,
+    required Color color,
+  }) {
+    return SnackBar(
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      backgroundColor: color,
+      elevation: 4,
+      content: Row(
+        children: [
+          Icon(icon, color: _white, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: _white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+      duration: const Duration(seconds: 3),
+    );
   }
 
   @override
@@ -267,455 +253,299 @@ class _ChatScreenState extends State<ChatScreen> {
     _controller.dispose();
     _connectivitySub.cancel();
     _scrollController.dispose();
+    for (final c in _messageControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // ── BUILD ─────────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF8FAFC),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: const Text(
-          "AI Assistant",
-          style: TextStyle(
-            color: Color(0xff0F172A),
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xff0F172A)),
-        actions: [
-          // Manual sync button
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _isSyncing 
-                      ? const Color(0xffF0FDFA)
-                      : const Color(0xffF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: _isSyncing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xff0EA5A4),
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.sync_outlined,
-                        color: Color(0xff64748B),
-                        size: 20,
-                      ),
-              ),
-              onPressed: _isSyncing ? null : syncPendingMessages,
-              tooltip: 'Sync messages',
+      backgroundColor: _bgPage,
+      resizeToAvoidBottomInset: true,
+      appBar: _buildAppBar(),
+      body: Column(
+        children: [
+          _buildOfflineBanner(),
+          Expanded(child: _buildMessageList()),
+          _buildInputBar(),
+        ],
+      ),
+    );
+  }
+
+  // ── App Bar ───────────────────────────────────────────────────────────────────
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor: _bgPage,
+      centerTitle: true,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _GeminiSparkleIcon(size: 22),
+          const SizedBox(width: 10),
+          const Text(
+            'AI Assistant',
+            style: TextStyle(
+              color: _userText,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.2,
             ),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: const Color(0xffE2E8F0),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: _isSyncing
+              ? Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(_accentBlue),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.sync_rounded, color: _iconGrey, size: 22),
+                  onPressed: syncPendingMessages,
+                  tooltip: 'Sync messages',
+                  style: IconButton.styleFrom(
+                    shape: const CircleBorder(),
+                  ),
+                ),
+        ),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Divider(height: 1, color: _divider),
+      ),
+    );
+  }
+
+  // ── Offline Banner ────────────────────────────────────────────────────────────
+  Widget _buildOfflineBanner() {
+    return StreamBuilder<ConnectivityResult>(
+      stream: Connectivity().onConnectivityChanged,
+      initialData: ConnectivityResult.none,
+      builder: (context, snapshot) {
+        final isConnected = snapshot.data != ConnectivityResult.none;
+        if (isConnected) return const SizedBox.shrink();
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: _offlineBg,
+          child: Row(
+            children: [
+              const Icon(Icons.wifi_off_rounded, size: 15, color: _offlineText),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'You\'re offline — messages will send when reconnected',
+                  style: TextStyle(
+                    color: _offlineText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
+        );
+      },
+    );
+  }
+
+  // ── Message List ──────────────────────────────────────────────────────────────
+  Widget _buildMessageList() {
+    if (chats.isEmpty) return _buildEmptyState();
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+      itemCount: chats.length,
+      itemBuilder: (context, index) {
+        final chat = chats[index];
+        final ctrl = _getController(chat.id);
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: ctrl, curve: Curves.easeOut),
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.06),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOut)),
+            child: chat.role == 'user'
+                ? _buildUserMessage(chat)
+                : _buildAiMessage(chat),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Empty State ───────────────────────────────────────────────────────────────
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _GeminiSparkleIcon(size: 52),
+            const SizedBox(height: 28),
+            const Text(
+              'Hello there',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w300,
+                color: _userText,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'How can I help you today?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: _iconGrey,
+                height: 1.4,
+              ),
+            ),
+
+          ],
         ),
       ),
-      body: Column(
+    );
+  }
+
+  // ── User Message Bubble ───────────────────────────────────────────────────────
+  Widget _buildUserMessage(ChatMessage chat) {
+    Widget? statusIcon;
+    switch (chat.syncStatus) {
+      case 'pending':
+        statusIcon = Icon(Icons.schedule_rounded, size: 12, color: _pendingAmber);
+        break;
+      case 'sending':
+        statusIcon = SizedBox(
+          width: 10,
+          height: 10,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            valueColor: AlwaysStoppedAnimation<Color>(_accentBlue),
+          ),
+        );
+        break;
+      case 'failed':
+        statusIcon = Icon(Icons.error_outline_rounded, size: 12, color: _errorRed);
+        break;
+      case 'synced':
+        statusIcon = Icon(Icons.done_all_rounded, size: 12, color: _successGreen);
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Connection status banner
-          StreamBuilder<ConnectivityResult>(
-            stream: Connectivity().onConnectivityChanged,
-            initialData: ConnectivityResult.none,
-            builder: (context, snapshot) {
-              final isConnected = snapshot.data != ConnectivityResult.none;
-              
-              if (isConnected) return const SizedBox.shrink();
-              
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: const Color(0xffFEF3C7),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.wifi_off_outlined,
-                      color: Color(0xffF59E0B),
-                      size: 16,
+          Flexible(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.72,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+              decoration: BoxDecoration(
+                color: _userBubble,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(4),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    chat.message,
+                    style: const TextStyle(
+                      color: _userText,
+                      fontSize: 15,
+                      height: 1.45,
+                      fontWeight: FontWeight.w400,
                     ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'You are offline. Messages will send when connected.',
-                        style: TextStyle(
-                          color: Color(0xff92400E),
-                          fontSize: 12,
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatTime(chat.createdAt),
+                        style: const TextStyle(
+                          color: _iconGrey,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        size: 16,
-                        color: Color(0xff92400E),
-                      ),
-                      onPressed: () {},
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          
-          // Chat messages area
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xffF8FAFC),
-                    Color(0xffF1F5F9),
-                  ],
-                ),
-              ),
-              child: chats.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(100),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xff0F172A).withOpacity(0.04),
-                                  blurRadius: 30,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.chat_outlined,
-                              size: 64,
-                              color: Color(0xff94A3B8),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Start a conversation',
-                            style: TextStyle(
-                              color: Color(0xff0F172A),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Send a message to begin chatting with AI',
-                            style: TextStyle(
-                              color: Color(0xff64748B),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(20),
-                      itemCount: chats.length,
-                      itemBuilder: (context, index) {
-                        final chat = chats[index];
-                        final isUser = chat.role == 'user';
-                        
-                        // Status indicator for user messages
-                        Widget? statusIndicator;
-                        if (isUser) {
-                          if (chat.syncStatus == 'pending') {
-                            statusIndicator = Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xffFEF3C7),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.schedule,
-                                size: 12,
-                                color: Color(0xffD97706),
-                              ),
-                            );
-                          } else if (chat.syncStatus == 'sending') {
-                            statusIndicator = Container(
-                              width: 16,
-                              height: 16,
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xffF0FDFA),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  const Color(0xff0EA5A4),
-                                ),
-                              ),
-                            );
-                          } else if (chat.syncStatus == 'failed') {
-                            statusIndicator = Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xffFEE2E2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.error_outline,
-                                size: 12,
-                                color: Color(0xffDC2626),
-                              ),
-                            );
-                          } else if (chat.syncStatus == 'synced') {
-                            statusIndicator = Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xffD1FAE5),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.check_circle_outline,
-                                size: 12,
-                                color: Color(0xff059669),
-                              ),
-                            );
-                          }
-                        }
-
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            mainAxisAlignment: isUser
-                                ? MainAxisAlignment.end
-                                : MainAxisAlignment.start,
-                            children: [
-                              // AI Avatar
-                              if (!isUser)
-                                Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xff0EA5A4),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.smart_toy_outlined,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              
-                              // Message bubble
-                              Flexible(
-                                child: Container(
-                                  constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.of(context).size.width * 0.7,
-                                  ),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: isUser
-                                        ? const Color(0xff0EA5A4)
-                                        : Colors.white,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(isUser ? 16 : 4),
-                                      topRight: Radius.circular(isUser ? 4 : 16),
-                                      bottomLeft: const Radius.circular(16),
-                                      bottomRight: const Radius.circular(16),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xff0F172A)
-                                            .withOpacity(0.04),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        chat.message,
-                                        style: TextStyle(
-                                          color: isUser
-                                              ? Colors.white
-                                              : const Color(0xff0F172A),
-                                          fontSize: 15,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            '${chat.createdAt.hour}:${chat.createdAt.minute.toString().padLeft(2, '0')}',
-                                            style: TextStyle(
-                                              color: isUser
-                                                  ? Colors.white.withOpacity(0.8)
-                                                  : const Color(0xff64748B),
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          if (statusIndicator != null) ...[
-                                            const SizedBox(width: 8),
-                                            statusIndicator,
-                                          ]
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              
-                              // User avatar
-                              if (isUser)
-                                Container(
-                                  margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xffF1F5F9),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.person_outline,
-                                    color: Color(0xff64748B),
-                                    size: 20,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ),
-          
-          // Input section
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xff0F172A).withOpacity(0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Attach button
-                Container(
-                  width: 44,
-                  height: 44,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xffF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.attach_file_outlined,
-                      size: 20,
-                      color: Color(0xff64748B),
-                    ),
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
-                
-                // Message input
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xffF8FAFC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xffE2E8F0),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextField(
-                            controller: _controller,
-                            decoration: const InputDecoration(
-                              hintText: "Type your message...",
-                              border: InputBorder.none,
-                              hintStyle: TextStyle(
-                                color: Color(0xff94A3B8),
-                                fontSize: 15,
-                              ),
-                            ),
-                            maxLines: null,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Color(0xff0F172A),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            onSubmitted: (_) => sendMessage(),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
+                      if (statusIcon != null) ...[
+                        const SizedBox(width: 5),
+                        statusIcon,
                       ],
-                    ),
-                  ),
-                ),
-                
-                // Send button
-                Container(
-                  width: 44,
-                  height: 44,
-                  margin: const EdgeInsets.only(left: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xff0EA5A4),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xff0EA5A4).withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
                     ],
                   ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.send_outlined,
-                      size: 20,
-                      color: Colors.white,
-                    ),
-                    onPressed: sendMessage,
-                    padding: EdgeInsets.zero,
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── AI Message (Gemini style — no bubble, just icon + text) ──────────────────
+  Widget _buildAiMessage(ChatMessage chat) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2, right: 12),
+            child: _GeminiSparkleIcon(size: 20),
+          ),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  chat.message,
+                  style: const TextStyle(
+                    color: _aiText,
+                    fontSize: 15,
+                    height: 1.55,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatTime(chat.createdAt),
+                  style: const TextStyle(
+                    color: _hintText,
+                    fontSize: 10.5,
                   ),
                 ),
               ],
@@ -723,6 +553,147 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // ── Input Bar ─────────────────────────────────────────────────────────────────
+  Widget _buildInputBar() {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final bottomPad = bottomInset > 0 ? 10.0 : MediaQuery.of(context).padding.bottom + 10;
+    return Container(
+      color: _bgPage,
+      padding: EdgeInsets.fromLTRB(16, 10, 16, bottomPad),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _surfaceCard,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          border: Border.all(color: _divider, width: 1),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Text field
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 8, 4),
+                child: TextField(
+                  controller: _controller,
+                  minLines: 1,
+                  maxLines: 5,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: _userText,
+                    height: 1.45,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Message',
+                    hintStyle: TextStyle(
+                      color: _hintText,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                    isDense: true,
+                  ),
+                  onSubmitted: (_) => sendMessage(),
+                ),
+              ),
+            ),
+
+            // Send / mic button
+            Padding(
+              padding: const EdgeInsets.all(6),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
+                child: _hasText
+                    ? _SendButton(key: const ValueKey('send'), onTap: sendMessage)
+                    : _MicButton(key: const ValueKey('mic')),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final h = dt.hour;
+    final m = dt.minute.toString().padLeft(2, '0');
+    final period = h >= 12 ? 'PM' : 'AM';
+    final hour = h % 12 == 0 ? 12 : h % 12;
+    return '$hour:$m $period';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Sub-Widgets ───────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Gemini-style 4-color sparkle icon
+class _GeminiSparkleIcon extends StatelessWidget {
+  final double size;
+  const _GeminiSparkleIcon({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [_geminiBlue, _geminiRed, _geminiYellow, _geminiGreen],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(bounds),
+      child: Icon(Icons.auto_awesome_rounded, size: size, color: Colors.white),
+    );
+  }
+}
+
+/// Animated send button
+class _SendButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _SendButton({super.key, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: const BoxDecoration(
+          color: _accentBlue,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.arrow_upward_rounded, color: _white, size: 20),
+      ),
+    );
+  }
+}
+
+/// Mic button (when input is empty)
+class _MicButton extends StatelessWidget {
+  const _MicButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: _bgPage,
+        shape: BoxShape.circle,
+        border: Border.all(color: _divider, width: 1),
+      ),
+      child: const Icon(Icons.mic_none_rounded, color: _iconGrey, size: 20),
     );
   }
 }

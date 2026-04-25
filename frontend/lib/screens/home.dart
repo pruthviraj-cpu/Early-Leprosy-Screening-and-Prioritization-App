@@ -1,10 +1,26 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/services/secure_storage.dart';
 import 'package:geolocator/geolocator.dart';
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const _bg         = Color(0xFFF6F8FC);
+const _surface    = Color(0xFFFFFFFF);
+const _teal       = Color(0xFF1A73E8); // Google blue — matches bottom navbar
+const _tealLight  = Color(0xFFE8F0FE); // Google blue pill bg — matches navbar
+const _tealDark   = Color(0xFF1557B0); // darker Google blue for gradient
+const _textPrimary   = Color(0xFF1F1F1F); // matches navbar active text
+const _textSecondary = Color(0xFF5F6368); // matches navbar inactive icon
+const _textHint      = Color(0xFF9AA0A6); // matches navbar hint tone
+const _border     = Color(0xFFE8EAED); // matches navbar top border
+const _borderFocus= Color(0xFF1A73E8); // Google blue focus ring
+const _red        = Color(0xFFD93025); // Google red
+const _green      = Color(0xFF188038); // Google green
+const _fillColor  = Color(0xFFF8F9FA); // Google standard input fill
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,11 +29,11 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController nameCtrl = TextEditingController();
-  final TextEditingController ageCtrl = TextEditingController();
+  final TextEditingController nameCtrl  = TextEditingController();
+  final TextEditingController ageCtrl   = TextEditingController();
   final TextEditingController phoneCtrl = TextEditingController();
 
   String? gender;
@@ -29,206 +45,97 @@ class _HomePageState extends State<HomePage> {
 
   final ImagePicker _picker = ImagePicker();
 
-  final List<String> genders = ['Male', 'Female', 'Other'];
+  final List<String> genders      = ['Male', 'Female', 'Other'];
   final List<String> symptomsList = ['Skin patches', 'Numbness', 'Lesions'];
-  final List<String> locations = ['Hand', 'Leg', 'Face'];
+  final List<String> locations    = ['Hand', 'Leg', 'Face'];
 
-  /* ---------- IMAGE PICK ---------- */
+  // ══════════════════════════════════════════════════════════════════════════
+  // LOGIC — UNTOUCHED
+  // ══════════════════════════════════════════════════════════════════════════
+
   Future<void> pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        selectedImage = File(image.path);
-      });
-    }
+    if (image != null) setState(() => selectedImage = File(image.path));
   }
 
-  /* ---------- GET LOCATION ---------- */
   Future<Position> getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) throw Exception('Location services are disabled.');
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
+      if (permission == LocationPermission.denied)
         throw Exception('Location permissions are denied');
-      }
     }
+    if (permission == LocationPermission.deniedForever)
+      throw Exception('Location permissions are permanently denied, cannot request.');
 
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-        'Location permissions are permanently denied, cannot request.',
-      );
-    }
-
-    LocationSettings locationSettings = const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 0,
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+      ),
     );
-
-    Position position = await Geolocator.getCurrentPosition(
-      locationSettings: locationSettings,
-    );
-
-    return position;
   }
 
-  /* ---------- SUBMIT DIAGNOSIS (Analyze + Save in one call) ---------- */
   Future<void> submitDiagnosis() async {
     if (!_formKey.currentState!.validate()) return;
     if (selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select an image first")),
-      );
+      _showSnack('Please select an image first', _red);
       return;
     }
 
     setState(() => loading = true);
-
     final token = await SecureStorage.getToken();
 
     if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Session expired. Please login again")),
-      );
+      _showSnack('Session expired. Please login again', _red);
       Navigator.pushReplacementNamed(context, 'login');
       return;
     }
 
     try {
-      // Get location
       Position position = await getCurrentLocation();
-      final latitude = position.latitude;
-      final longitude = position.longitude;
 
-      // Create multipart request
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('https://skin-buddy.onrender.com/api/diagnosis/create'),
       );
 
-      // Add headers
       request.headers['Authorization'] = 'Bearer $token';
-
-      // Add text fields
-      request.fields['full_name'] = nameCtrl.text;
-      request.fields['age'] = ageCtrl.text;
-      request.fields['gender'] = gender ?? '';
-      request.fields['number'] = phoneCtrl.text;
-      request.fields['symptoms'] = symptoms ?? '';
+      request.fields['full_name']     = nameCtrl.text;
+      request.fields['age']           = ageCtrl.text;
+      request.fields['gender']        = gender ?? '';
+      request.fields['number']        = phoneCtrl.text;
+      request.fields['symptoms']      = symptoms ?? '';
       request.fields['affected_area'] = location ?? '';
-      request.fields['latitude'] = latitude.toString();
-      request.fields['longitude'] = longitude.toString();
-
-      // Add image file
+      request.fields['latitude']      = position.latitude.toString();
+      request.fields['longitude']     = position.longitude.toString();
       request.files.add(
         await http.MultipartFile.fromPath('file', selectedImage!.path),
       );
 
-      // Send request
       var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-      var responseData = jsonDecode(response.body);
+      var response         = await http.Response.fromStream(streamedResponse);
+      var responseData     = jsonDecode(response.body);
 
       setState(() => loading = false);
-
-      // Show success/failure message
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
-      scaffoldMessenger.clearSnackBars();
+      ScaffoldMessenger.of(context).clearSnackBars();
 
       if (response.statusCode == 200 && responseData['success'] == true) {
-        // ✅ Success
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: const Color(0xff10B981),
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Form Submitted Successfully!',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Your diagnosis has been recorded',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            duration: const Duration(seconds: 4),
-          ),
-        );
-
-        // Clear form after successful submission
+        _showSnack('Diagnosis submitted successfully!', _green,
+            subtitle: 'Your report has been recorded.');
         _clearForm();
       } else {
-        // ❌ Failure
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: const Color(0xffEF4444),
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    responseData['message'] ?? 'Failed to save diagnosis',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            ),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        _showSnack(responseData['message'] ?? 'Failed to save diagnosis', _red);
       }
     } catch (e) {
       setState(() => loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: const Color(0xffEF4444),
-          content: Row(
-            children: [
-              const Icon(Icons.error, color: Colors.white, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text('Error: ${e.toString()}'),
-              ),
-            ],
-          ),
-        ),
-      );
+      _showSnack('Error: ${e.toString()}', _red);
     }
   }
 
-  // Helper method to clear form
   void _clearForm() {
     nameCtrl.clear();
     ageCtrl.clear();
@@ -241,477 +148,691 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  /* ---------- UI ---------- */
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffF8FAFC),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: const Text(
-          "Skin Health Assessment",
-          style: TextStyle(
-            color: Color(0xff0F172A),
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xff0F172A)),
-        // !removed for avoiding duplication of logout button
-        // actions: [
-        //   Padding(
-        //     padding: const EdgeInsets.only(right: 8.0),
-        //     child: IconButton(
-        //       icon: Container(
-        //         padding: const EdgeInsets.all(8),
-        //         decoration: BoxDecoration(
-        //           color: const Color(0xffF1F5F9),
-        //           borderRadius: BorderRadius.circular(12),
-        //         ),
-        //         child: const Icon(
-        //           Icons.logout,
-        //           color: Color(0xffEF4444),
-        //           size: 20,
-        //         ),
-        //       ),
-        //       onPressed: () {
-        //         Navigator.pushReplacementNamed(context, 'login');
-        //       },
-        //     ),
-        //   ),
-        // ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: const Color(0xffE2E8F0)),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  void _showSnack(String message, Color color, {String? subtitle}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        backgroundColor: color,
+        elevation: 4,
+        content: Row(
           children: [
-            const SizedBox(height: 8),
-
-            // Basic Details Card
-            _buildSectionCard(
-              title: "Basic Details",
-              icon: Icons.person_outline,
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    _buildInputField(nameCtrl, "Full Name", Icons.person),
-                    const SizedBox(height: 16),
-                    _buildInputField(
-                      ageCtrl,
-                      "Age",
-                      Icons.calendar_today,
-                      isNumber: true,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDropdown(
-                      "Gender",
-                      genders,
-                      gender,
-                      Icons.transgender,
-                      (v) => setState(() => gender = v),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInputField(phoneCtrl, "Phone Number", Icons.phone),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
+            Icon(
+              color == _green ? Icons.check_circle_rounded : Icons.error_rounded,
+              color: Colors.white,
+              size: 20,
             ),
-
-            const SizedBox(height: 20),
-
-            // Symptoms & Location Card
-            _buildSectionCard(
-              title: "Symptoms & Location",
-              icon: Icons.medical_services_outlined,
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildDropdown(
-                    "Symptoms",
-                    symptomsList,
-                    symptoms,
-                    Icons.health_and_safety,
-                    (v) => setState(() => symptoms = v),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDropdown(
-                    "Affected Area",
-                    locations,
-                    location,
-                    Icons.location_on_outlined,
-                    (v) => setState(() => location = v),
-                  ),
+                  Text(message,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 11)),
+                  ],
                 ],
               ),
             ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
 
-            const SizedBox(height: 20),
+  // ══════════════════════════════════════════════════════════════════════════
+  // BUILD
+  // ══════════════════════════════════════════════════════════════════════════
 
-            // Image Upload Card
-            _buildSectionCard(
-              title: "Upload Image",
-              icon: Icons.image_outlined,
-              child: Column(
-                children: [
-                  // Image Preview
-                  Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: const Color(0xffF1F5F9),
-                      border: Border.all(
-                        color: const Color(0xffE2E8F0),
-                        width: 1,
-                      ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _bg,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildSliverHeader(),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 20),
+                        _StepCard(
+                          step: 1,
+                          title: 'Personal Details',
+                          subtitle: 'Tell us about yourself',
+                          child: _buildPersonalSection(),
+                        ),
+                        const SizedBox(height: 16),
+                        _StepCard(
+                          step: 2,
+                          title: 'Symptoms & Area',
+                          subtitle: 'Describe what you are experiencing',
+                          child: _buildSymptomsSection(),
+                        ),
+                        const SizedBox(height: 16),
+                        _StepCard(
+                          step: 3,
+                          title: 'Upload Photo',
+                          subtitle: 'Clear photo of the affected area',
+                          child: _buildImageSection(),
+                        ),
+                      ],
                     ),
-                    child: selectedImage != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Stack(
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // ── Sticky submit button at bottom ─────────────────────────────
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildSubmitBar(),
+          ),
+
+          // ── Full-screen loading overlay ────────────────────────────────
+          if (loading) _buildLoadingOverlay(),
+        ],
+      ),
+    );
+  }
+
+  // ── Sliver collapsing header ─────────────────────────────────────────────
+  Widget _buildSliverHeader() {
+    return SliverAppBar(
+      expandedHeight: 80,
+      pinned: true,
+      elevation: 0,
+      scrolledUnderElevation: 1,
+      backgroundColor: _surface,
+      surfaceTintColor: Colors.transparent,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      flexibleSpace: FlexibleSpaceBar(
+        collapseMode: CollapseMode.parallax,
+        background: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color.fromARGB(255, 69, 135, 221), Color.fromARGB(255, 46, 114, 203)],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.medical_information_outlined,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Skin Assessment',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  
+                ],
+              ),
+            ),
+          ),
+        ),
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 14),
+      ),
+    );
+  }
+
+  // ── Personal section ─────────────────────────────────────────────────────
+  Widget _buildPersonalSection() {
+    return Column(
+      children: [
+        _Field(
+          controller: nameCtrl,
+          hint: 'Full Name',
+          icon: Icons.person_outline_rounded,
+          validator: (v) => v!.isEmpty ? 'Required' : null,
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: _Field(
+                controller: ageCtrl,
+                hint: 'Age',
+                icon: Icons.cake_outlined,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (v) => v!.isEmpty ? 'Required' : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _DropdownField(
+                hint: 'Gender',
+                icon: Icons.wc_outlined,
+                items: genders,
+                value: gender,
+                onChanged: (v) => setState(() => gender = v),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _Field(
+          controller: phoneCtrl,
+          hint: 'Phone Number',
+          icon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) => v!.isEmpty ? 'Required' : null,
+        ),
+      ],
+    );
+  }
+
+  // ── Symptoms section ─────────────────────────────────────────────────────
+  Widget _buildSymptomsSection() {
+    return Column(
+      children: [
+        _DropdownField(
+          hint: 'Select Symptoms',
+          icon: Icons.health_and_safety_outlined,
+          items: symptomsList,
+          value: symptoms,
+          onChanged: (v) => setState(() => symptoms = v),
+        ),
+        const SizedBox(height: 14),
+        _DropdownField(
+          hint: 'Affected Area',
+          icon: Icons.location_on_outlined,
+          items: locations,
+          value: location,
+          onChanged: (v) => setState(() => location = v),
+        ),
+      ],
+    );
+  }
+
+  // ── Image section ─────────────────────────────────────────────────────────
+  Widget _buildImageSection() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: pickImage,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: selectedImage != null ? Colors.transparent : _fillColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selectedImage != null ? const Color.fromARGB(255, 118, 166, 227) : _border,
+                width: selectedImage != null ? 2 : 1.5,
+                // Dashed effect via decoration only (solid for Flutter compat)
+              ),
+            ),
+            child: selectedImage != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.file(selectedImage!, fit: BoxFit.cover),
+                        // Overlay bar at bottom
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.65),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                            child: Row(
                               children: [
-                                Image.file(
-                                  selectedImage!,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
+                                const Icon(Icons.check_circle_rounded,
+                                    color: Colors.white, size: 16),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'Photo selected',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                                Positioned(
-                                  top: 12,
-                                  right: 12,
+                                const Spacer(),
+                                GestureDetector(
+                                  onTap: pickImage,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
+                                        horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.black54,
+                                      color: Colors.white.withOpacity(0.25),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
-                                    child: Text(
-                                      'Selected',
+                                    child: const Text(
+                                      'Change',
                                       style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.cloud_upload_outlined,
-                                size: 64,
-                                color: Color(0xff94A3B8),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Upload an image',
-                                style: TextStyle(
-                                  color: const Color(0xff64748B),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Supports JPG, PNG',
-                                style: TextStyle(
-                                  color: const Color(0xff94A3B8),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Single Button - Upload Image
-                  _buildSecondaryButton(
-                    "Choose Image",
-                    pickImage,
-                    icon: Icons.upload_outlined,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Submit Button
-                  _buildPrimaryButton(
-                    "Submit Diagnosis",
-                    submitDiagnosis,
-                    icon: Icons.save_outlined,
-                  ),
-
-                  // Loading Indicator
-                  if (loading) ...[
-                    const SizedBox(height: 24),
-                    Column(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xffF1F5F9),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xff0EA5A4),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Processing...',
-                          style: TextStyle(
-                            color: Color(0xff64748B),
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ],
-              ),
-            ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _tealLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.add_photo_alternate_outlined,
+                            size: 32, color: Color.fromARGB(255, 112, 163, 230)),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Tap to upload photo',
+                        style: TextStyle(
+                          color: _textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'JPG or PNG  •  High quality preferred',
+                        style: TextStyle(color: _textHint, fontSize: 12),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
 
-            const SizedBox(height: 40),
-          ],
+  // ── Sticky submit bar ─────────────────────────────────────────────────────
+  Widget _buildSubmitBar() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
+      decoration: BoxDecoration(
+        color: _surface,
+        border: const Border(top: BorderSide(color: _border, width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: loading ? null : submitDiagnosis,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromARGB(255, 113, 164, 231),
+            disabledBackgroundColor: const Color.fromARGB(255, 106, 161, 232).withOpacity(0.5),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.send_rounded, size: 18),
+              SizedBox(width: 10),
+              Text(
+                'Submit Diagnosis',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /* ---------- REUSABLE WIDGETS ---------- */
-  Widget _buildSectionCard({
-    required String title,
-    required Widget child,
-    required IconData icon,
-  }) {
+  // ── Loading overlay ───────────────────────────────────────────────────────
+  Widget _buildLoadingOverlay() {
     return Container(
-      clipBehavior: Clip.antiAlias,
+      color: Colors.black.withOpacity(0.35),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+          margin: const EdgeInsets.symmetric(horizontal: 48),
+          decoration: BoxDecoration(
+            color: _surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 30,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 44,
+                height: 44,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 115, 163, 226)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Analyzing...',
+                style: TextStyle(
+                  color: _textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Please wait a moment',
+                style: TextStyle(color: _textSecondary, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Step Card ─────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _StepCard extends StatelessWidget {
+  final int step;
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  const _StepCard({
+    required this.step,
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xff0F172A).withOpacity(0.04),
-            blurRadius: 30,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Color(0xffF1F5F9), width: 1),
-              ),
-            ),
+          // ── Header ──────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Step number badge
                 Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xffF0FDFA),
-                    borderRadius: BorderRadius.circular(12),
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: _teal,
+                    shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: const Color(0xff0EA5A4), size: 20),
+                  child: Center(
+                    child: Text(
+                      '$step',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xff0F172A),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                          color: _textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        )),
+                    const SizedBox(height: 1),
+                    Text(subtitle,
+                        style: const TextStyle(
+                          color: _textSecondary,
+                          fontSize: 12,
+                        )),
+                  ],
                 ),
               ],
             ),
           ),
-          Padding(padding: const EdgeInsets.all(20), child: child),
+
+          // ── Divider ──────────────────────────────────────────────────────
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+
+          // ── Content ──────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+            child: child,
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildInputField(
-    TextEditingController ctrl,
-    String hint,
-    IconData icon, {
-    bool isNumber = false,
-  }) {
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Reusable Text Field ───────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _Field extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final String? Function(String?)? validator;
+
+  const _Field({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.keyboardType = TextInputType.text,
+    this.inputFormatters,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return TextFormField(
-      controller: ctrl,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      controller: controller,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: const TextStyle(
-        fontSize: 15,
+        fontSize: 14,
+        color: _textPrimary,
         fontWeight: FontWeight.w500,
-        color: Color(0xff0F172A),
       ),
+      validator: validator,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          color: Color(0xff94A3B8),
-          fontWeight: FontWeight.w400,
-        ),
+        hintStyle: const TextStyle(color: _textHint, fontSize: 14),
         filled: true,
-        fillColor: const Color(0xffF8FAFC),
+        fillColor: _fillColor,
+        prefixIcon: Icon(icon, size: 18, color: _textSecondary),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xffE2E8F0), width: 1),
+          borderSide: const BorderSide(color: _border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xff0EA5A4), width: 1.5),
+          borderSide: const BorderSide(color: Color.fromARGB(255, 108, 158, 223), width: 1.5),
         ),
-        prefixIcon: Icon(icon, size: 20, color: const Color(0xff64748B)),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 16,
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _red, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _red, width: 1.5),
         ),
       ),
-      validator: (v) => v!.isEmpty ? 'Required' : null,
     );
   }
+}
 
-  Widget _buildDropdown(
-    String hint,
-    List<String> items,
-    String? value,
-    IconData icon,
-    Function(String?) onChange,
-  ) {
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Reusable Dropdown Field ───────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _DropdownField extends StatelessWidget {
+  final String hint;
+  final IconData icon;
+  final List<String> items;
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  const _DropdownField({
+    required this.hint,
+    required this.icon,
+    required this.items,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       value: value,
-      items: items
-          .map(
-            (e) => DropdownMenuItem(
-              value: e,
-              child: Text(
-                e,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xff0F172A),
-                ),
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: onChange,
+      onChanged: onChanged,
+      dropdownColor: _surface,
+      borderRadius: BorderRadius.circular(14),
+      icon: const Icon(Icons.keyboard_arrow_down_rounded,
+          color: _textSecondary, size: 20),
       style: const TextStyle(
-        fontSize: 15,
+        fontSize: 14,
+        color: _textPrimary,
         fontWeight: FontWeight.w500,
-        color: Color(0xff0F172A),
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          color: Color(0xff94A3B8),
-          fontWeight: FontWeight.w400,
-        ),
+        hintStyle: const TextStyle(color: _textHint, fontSize: 14),
         filled: true,
-        fillColor: const Color(0xffF8FAFC),
+        fillColor: _fillColor,
+        prefixIcon: Icon(icon, size: 18, color: _textSecondary),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xffE2E8F0), width: 1),
+          borderSide: const BorderSide(color: _border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xff0EA5A4), width: 1.5),
-        ),
-        prefixIcon: Icon(icon, size: 20, color: const Color(0xff64748B)),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 16,
+          borderSide: const BorderSide(color: Color.fromARGB(255, 83, 141, 218), width: 1.5),
         ),
       ),
-      dropdownColor: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      icon: const Icon(Icons.arrow_drop_down, color: Color(0xff64748B)),
-    );
-  }
-
-  Widget _buildPrimaryButton(
-    String text,
-    VoidCallback onTap, {
-    IconData? icon,
-  }) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xff0EA5A4),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 0,
-        shadowColor: Colors.transparent,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
-          Text(
-            text,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSecondaryButton(
-    String text,
-    VoidCallback onTap, {
-    IconData? icon,
-  }) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: const BorderSide(color: Color(0xffE2E8F0), width: 1),
-        foregroundColor: const Color(0xff64748B),
-        backgroundColor: Colors.white,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
-          Text(
-            text,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
+      items: items
+          .map((e) => DropdownMenuItem(
+                value: e,
+                child: Text(e,
+                    style: const TextStyle(
+                        fontSize: 14, color: _textPrimary)),
+              ))
+          .toList(),
     );
   }
 }

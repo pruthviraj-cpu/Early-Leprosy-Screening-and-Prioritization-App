@@ -24,8 +24,8 @@ const _offlineText  = Color(0xFF7D5700);
 
 // ─── Gemini sparkle gradient colors ───────────────────────────────────────────
 const _geminiBlue   = Color(0xFF4285F4);
-const _geminiRed    = Color(0xFFEA4335);
-const _geminiYellow = Color(0xFFFBBC05);
+const _geminiRed    = Color(0xFF1A73E8); 
+const _geminiYellow = Color(0xFF1A73E8); 
 const _geminiGreen  = Color(0xFF34A853);
 
 class ChatScreen extends StatefulWidget {

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/home.dart';
+import 'package:flutter/services.dart';
 import '../profile/screen/profile_screen.dart';
-import 'package:frontend/screens/doctor_home.dart';
 import '../../screens/doctor_home_list.dart';
 
-// change for profile navigation
 class DoctorBottomNavScreen extends StatefulWidget {
   final int initialIndex;
-
   const DoctorBottomNavScreen({super.key, this.initialIndex = 0});
 
   @override
@@ -28,147 +25,122 @@ class _DoctorBottomNavScreenState extends State<DoctorBottomNavScreen> {
     const ProfileScreen(),
   ];
 
+  void _onTap(int index) {
+    if (index == _currentIndex) return;
+    HapticFeedback.selectionClick();
+    setState(() => _currentIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xff0F172A).withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-            ),
-          ],
-          border: const Border(
-            top: BorderSide(color: Color(0xffE2E8F0), width: 1),
-          ),
-        ),
-        child: SafeArea(
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            backgroundColor: Colors.white,
-            elevation: 0,
-            type: BottomNavigationBarType.fixed,
-            showSelectedLabels: true,
-            showUnselectedLabels: true,
-            selectedItemColor: const Color(0xff0EA5A4),
-            unselectedItemColor: const Color(0xff94A3B8),
-            selectedLabelStyle: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              height: 1.4,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              height: 1.4,
-            ),
-            items: [
-              BottomNavigationBarItem(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _currentIndex == 0
-                        ? const Color(0xffF0FDFA)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.home_outlined,
-                    size: 24,
-                    color: _currentIndex == 0
-                        ? const Color(0xff0EA5A4)
-                        : const Color(0xff94A3B8),
-                  ),
+      bottomNavigationBar: _GoogleNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onTap,
+      ),
+    );
+  }
+}
+
+// ─── Google / Play Store style nav bar ───────────────────────────────────────
+class _GoogleNavBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _GoogleNavBar({required this.currentIndex, required this.onTap});
+
+  static const _items = [
+    _NavItem(label: 'Home',    icon: Icons.home_outlined,          activeIcon: Icons.home_rounded),
+    _NavItem(label: 'Profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE8EAED), width: 1)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: List.generate(_items.length, (i) {
+              return Expanded(
+                child: _NavTile(
+                  item: _items[i],
+                  selected: i == currentIndex,
+                  onTap: () => onTap(i),
                 ),
-                activeIcon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xffF0FDFA),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.home_filled,
-                    size: 24,
-                    color: Color(0xff0EA5A4),
-                  ),
-                ),
-                label: 'Home',
-              ),
-              // BottomNavigationBarItem(
-              //   icon: Container(
-              //     padding: const EdgeInsets.all(8),
-              //     decoration: BoxDecoration(
-              //       color: _currentIndex == 1
-              //           ? const Color(0xffF0FDFA)
-              //           : Colors.transparent,
-              //       borderRadius: BorderRadius.circular(12),
-              //     ),
-              //     child: Icon(
-              //       Icons.chat_bubble_outline_outlined,
-              //       size: 24,
-              //       color: _currentIndex == 1
-              //           ? const Color(0xff0EA5A4)
-              //           : const Color(0xff94A3B8),
-              //     ),
-              //   ),
-              //   activeIcon: Container(
-              //     padding: const EdgeInsets.all(8),
-              //     decoration: BoxDecoration(
-              //       color: const Color(0xffF0FDFA),
-              //       borderRadius: BorderRadius.circular(12),
-              //     ),
-              //     child: const Icon(
-              //       Icons.chat_bubble_rounded,
-              //       size: 24,
-              //       color: Color(0xff0EA5A4),
-              //     ),
-              //   ),
-              //   label: 'Chat',
-              // ),
-              BottomNavigationBarItem(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _currentIndex == 2
-                        ? const Color(0xffF0FDFA)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.person_outline_outlined,
-                    size: 24,
-                    color: _currentIndex == 2
-                        ? const Color(0xff0EA5A4)
-                        : const Color(0xff94A3B8),
-                  ),
-                ),
-                activeIcon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xffF0FDFA),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    size: 24,
-                    color: Color(0xff0EA5A4),
-                  ),
-                ),
-                label: 'Profile',
-              ),
-            ],
+              );
+            }),
           ),
         ),
       ),
     );
   }
+}
+
+// ─── Individual tile with animated pill ──────────────────────────────────────
+class _NavTile extends StatelessWidget {
+  final _NavItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavTile({required this.item, required this.selected, required this.onTap});
+
+  static const _blue        = Color(0xFF1A73E8);
+  static const _inactiveClr = Color(0xFF5F6368);
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeInOut,
+            width: selected ? 64 : 36,
+            height: 32,
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFFE8F0FE) : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Icon(
+                selected ? item.activeIcon : item.icon,
+                size: 22,
+                color: selected ? _blue : _inactiveClr,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 180),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected ? _blue : _inactiveClr,
+              letterSpacing: 0.1,
+            ),
+            child: Text(item.label),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Data class ───────────────────────────────────────────────────────────────
+class _NavItem {
+  final String label;
+  final IconData icon;
+  final IconData activeIcon;
+  const _NavItem({required this.label, required this.icon, required this.activeIcon});
 }

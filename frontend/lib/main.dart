@@ -3,9 +3,13 @@ import 'package:frontend/services/secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 import 'features/chat/model/chat_message.dart';
 import 'models/diagnosis_result.dart';
 import 'features/profile/model/user_profile.dart';
+
+import 'models/pending_diagnosis.dart';
+import 'services/diagnosis_cache_service.dart';
 
 // import 'screens/home.dart';
 import 'screens/login.dart';
@@ -28,9 +32,11 @@ Future<void> main() async {
   Hive.registerAdapter(ChatMessageAdapter());
   Hive.registerAdapter(DiagnosisResultAdapter());
   Hive.registerAdapter(UserProfileAdapter());
+  Hive.registerAdapter(PendingDiagnosisAdapter());
 
   await Hive.openBox<UserProfile>('profile');
   await Hive.openBox<DiagnosisResult>('diagnosis');
+  await DiagnosisCacheService.init();
 
   final token = await SecureStorage.getToken();
   final role = await SecureStorage.getUserRole();

@@ -6,21 +6,26 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/services/secure_storage.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
+
+import '../models/pending_diagnosis.dart';
+import '../services/diagnosis_cache_service.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const _bg         = Color(0xFFF6F8FC);
-const _surface    = Color(0xFFFFFFFF);
-const _teal       = Color(0xFF1A73E8); // Google blue — matches bottom navbar
-const _tealLight  = Color(0xFFE8F0FE); // Google blue pill bg — matches navbar
-const _tealDark   = Color(0xFF1557B0); // darker Google blue for gradient
-const _textPrimary   = Color(0xFF1F1F1F); // matches navbar active text
-const _textSecondary = Color(0xFF5F6368); // matches navbar inactive icon
-const _textHint      = Color(0xFF9AA0A6); // matches navbar hint tone
-const _border     = Color(0xFFE8EAED); // matches navbar top border
-const _borderFocus= Color(0xFF1A73E8); // Google blue focus ring
-const _red        = Color(0xFFD93025); // Google red
-const _green      = Color(0xFF188038); // Google green
-const _fillColor  = Color(0xFFF8F9FA); // Google standard input fill
+const _bg            = Color(0xFFF6F8FC);
+const _surface       = Color(0xFFFFFFFF);
+const _teal          = Color(0xFF1A73E8);
+const _tealLight     = Color(0xFFE8F0FE);
+const _tealDark      = Color(0xFF1557B0);
+const _textPrimary   = Color(0xFF1F1F1F);
+const _textSecondary = Color(0xFF5F6368);
+const _textHint      = Color(0xFF9AA0A6);
+const _border        = Color(0xFFE8EAED);
+const _borderFocus   = Color(0xFF1A73E8);
+const _red           = Color(0xFFD93025);
+const _green         = Color(0xFF188038);
+const _fillColor     = Color(0xFFF8F9FA);
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -29,7 +34,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController nameCtrl  = TextEditingController();
@@ -40,9 +46,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   String? symptoms;
   String? location;
 
-  File? selectedImage;
-  bool loading = false;
+  File?  selectedImage;
+  bool   loading    = false;
+  bool   _isSyncing = false;
 
+  late final StreamSubscription<ConnectivityResult> _connectivitySub;
   final ImagePicker _picker = ImagePicker();
 
   final List<String> genders      = ['Male', 'Female', 'Other'];
@@ -50,13 +58,147 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   final List<String> locations    = ['Hand', 'Leg', 'Face'];
 
   // ══════════════════════════════════════════════════════════════════════════
-  // LOGIC — UNTOUCHED
+  // LIFECYCLE
+  // ══════════════════════════════════════════════════════════════════════════
+
+  @override
+  void initState() {
+    super.initState();
+    _listenToInternet();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub.cancel();
+    nameCtrl.dispose();
+    ageCtrl.dispose();
+    phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CONNECTIVITY — same pattern as chat screen
+  // ══════════════════════════════════════════════════════════════════════════
+
+  void _listenToInternet() {
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((result) {
+      if (result != ConnectivityResult.none) {
+        _syncPendingForms();
+      }
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SYNC PENDING FORMS (runs when internet comes back)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Future<void> _syncPendingForms() async {
+    if (_isSyncing) return;
+    _isSyncing = true;
+
+    try {
+      final pending = DiagnosisCacheService.getPending();
+      if (pending.isEmpty) return;
+
+      final token = await SecureStorage.getToken();
+      if (token == null) return;
+
+      for (final entry in pending) {
+        try {
+          // Mark as sending to prevent duplicate sends
+          entry.syncStatus = 'sending';
+          await DiagnosisCacheService.save(entry);
+
+          final imageFile = File(entry.imagePath);
+          if (!await imageFile.exists()) {
+            // Image was deleted from device — skip silently
+            entry.syncStatus = 'failed';
+            await DiagnosisCacheService.save(entry);
+            continue;
+          }
+
+          // Get fresh location for offline submissions
+          Position position;
+          try {
+            position = await getCurrentLocation();
+          } catch (_) {
+            // If location fails during sync, fall back to 0,0
+            position = Position(
+              latitude: 0,
+              longitude: 0,
+              timestamp: DateTime.now(),
+              accuracy: 0,
+              altitude: 0,
+              altitudeAccuracy: 0,
+              heading: 0,
+              headingAccuracy: 0,
+              speed: 0,
+              speedAccuracy: 0,
+            );
+          }
+
+          var request = http.MultipartRequest(
+            'POST',
+            Uri.parse('https://skin-buddy.onrender.com/api/diagnosis/create'),
+          );
+
+          request.headers['Authorization'] = 'Bearer $token';
+          request.fields['full_name']     = entry.fullName;
+          request.fields['age']           = entry.age;
+          request.fields['gender']        = entry.gender;
+          request.fields['number']        = entry.phone;
+          request.fields['symptoms']      = entry.symptoms;
+          request.fields['affected_area'] = entry.affectedArea;
+          request.fields['latitude']      = position.latitude.toString();
+          request.fields['longitude']     = position.longitude.toString();
+          request.files.add(
+            await http.MultipartFile.fromPath('file', entry.imagePath),
+          );
+
+          final streamed  = await request.send();
+          final response  = await http.Response.fromStream(streamed);
+          final data      = jsonDecode(response.body);
+
+          if (response.statusCode == 200 && data['success'] == true) {
+            entry.syncStatus = 'synced';
+            await DiagnosisCacheService.save(entry);
+            if (mounted) {
+              _showSnack('Offline diagnosis synced successfully!', _green,
+                  subtitle: 'Your saved form was sent.');
+            }
+          } else {
+            entry.syncStatus = 'pending'; // retry next time
+            await DiagnosisCacheService.save(entry);
+          }
+        } catch (e) {
+          debugPrint('Sync error for ${entry.id}: $e');
+          entry.syncStatus = 'pending';
+          await DiagnosisCacheService.save(entry);
+        }
+      }
+
+      // Clean up synced records
+      await DiagnosisCacheService.deleteSynced();
+    } catch (e) {
+      debugPrint('_syncPendingForms error: $e');
+    } finally {
+      _isSyncing = false;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // IMAGE PICK — untouched
   // ══════════════════════════════════════════════════════════════════════════
 
   Future<void> pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) setState(() => selectedImage = File(image.path));
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // LOCATION — untouched
+  // ══════════════════════════════════════════════════════════════════════════
 
   Future<Position> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -69,7 +211,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         throw Exception('Location permissions are denied');
     }
     if (permission == LocationPermission.deniedForever)
-      throw Exception('Location permissions are permanently denied, cannot request.');
+      throw Exception(
+          'Location permissions are permanently denied, cannot request.');
 
     return Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
@@ -79,6 +222,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // SUBMIT — saves to Hive first, then tries network (same as chat)
+  // ══════════════════════════════════════════════════════════════════════════
+
   Future<void> submitDiagnosis() async {
     if (!_formKey.currentState!.validate()) return;
     if (selectedImage == null) {
@@ -87,15 +234,55 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
 
     setState(() => loading = true);
-    final token = await SecureStorage.getToken();
 
+    final token = await SecureStorage.getToken();
     if (token == null) {
+      setState(() => loading = false);
       _showSnack('Session expired. Please login again', _red);
       Navigator.pushReplacementNamed(context, 'login');
       return;
     }
 
+    // ── 1️⃣  Save to Hive immediately (offline-first) ─────────────────────
+    final entry = PendingDiagnosis(
+      id:           '${DateTime.now().millisecondsSinceEpoch}_diag',
+      fullName:     nameCtrl.text.trim(),
+      age:          ageCtrl.text.trim(),
+      gender:       gender ?? '',
+      phone:        phoneCtrl.text.trim(),
+      symptoms:     symptoms ?? '',
+      affectedArea: location ?? '',
+      imagePath:    selectedImage!.path,
+      syncStatus:   'pending',
+      createdAt:    DateTime.now(),
+    );
+    await DiagnosisCacheService.save(entry);
+
+    // ── 2️⃣  Check connectivity ────────────────────────────────────────────
+    final connectivity = await Connectivity().checkConnectivity();
+    final hasInternet  = connectivity != ConnectivityResult.none;
+
+    if (hasInternet) {
+      // Send right now
+      await _sendToBackend(entry, token);
+    } else {
+      // Save locally, will sync when internet returns (like chat offline mode)
+      setState(() => loading = false);
+      _showSnack(
+        'Saved offline. Will submit when connected.',
+        const Color(0xFFF9AB00),
+        subtitle: 'Your form is safely stored on this device.',
+      );
+      _clearForm();
+    }
+  }
+
+  // ── Send one entry to backend ──────────────────────────────────────────────
+  Future<void> _sendToBackend(PendingDiagnosis entry, String token) async {
     try {
+      entry.syncStatus = 'sending';
+      await DiagnosisCacheService.save(entry);
+
       Position position = await getCurrentLocation();
 
       var request = http.MultipartRequest(
@@ -104,46 +291,72 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       );
 
       request.headers['Authorization'] = 'Bearer $token';
-      request.fields['full_name']     = nameCtrl.text;
-      request.fields['age']           = ageCtrl.text;
-      request.fields['gender']        = gender ?? '';
-      request.fields['number']        = phoneCtrl.text;
-      request.fields['symptoms']      = symptoms ?? '';
-      request.fields['affected_area'] = location ?? '';
+      request.fields['full_name']     = entry.fullName;
+      request.fields['age']           = entry.age;
+      request.fields['gender']        = entry.gender;
+      request.fields['number']        = entry.phone;
+      request.fields['symptoms']      = entry.symptoms;
+      request.fields['affected_area'] = entry.affectedArea;
       request.fields['latitude']      = position.latitude.toString();
       request.fields['longitude']     = position.longitude.toString();
       request.files.add(
-        await http.MultipartFile.fromPath('file', selectedImage!.path),
+        await http.MultipartFile.fromPath('file', entry.imagePath),
       );
 
-      var streamedResponse = await request.send();
-      var response         = await http.Response.fromStream(streamedResponse);
-      var responseData     = jsonDecode(response.body);
+      final streamed  = await request.send();
+      final response  = await http.Response.fromStream(streamed);
+      final data      = jsonDecode(response.body);
 
       setState(() => loading = false);
       ScaffoldMessenger.of(context).clearSnackBars();
 
-      if (response.statusCode == 200 && responseData['success'] == true) {
+      if (response.statusCode == 200 && data['success'] == true) {
+        entry.syncStatus = 'synced';
+        await DiagnosisCacheService.save(entry);
+        await DiagnosisCacheService.deleteSynced();
+
         _showSnack('Diagnosis submitted successfully!', _green,
             subtitle: 'Your report has been recorded.');
         _clearForm();
       } else {
-        _showSnack(responseData['message'] ?? 'Failed to save diagnosis', _red);
+        // Mark pending so sync retries it
+        entry.syncStatus = 'pending';
+        await DiagnosisCacheService.save(entry);
+
+        _showSnack(data['message'] ?? 'Failed to save diagnosis', _red);
+        setState(() => loading = false);
       }
     } catch (e) {
-      setState(() => loading = false);
-      _showSnack('Error: ${e.toString()}', _red);
+      debugPrint('_sendToBackend error: $e');
+
+      // Keep as pending — will retry on reconnect
+      entry.syncStatus = 'pending';
+      await DiagnosisCacheService.save(entry);
+
+      if (mounted) {
+        setState(() => loading = false);
+        _showSnack(
+          'No connection. Form saved locally.',
+          const Color(0xFFF9AB00),
+          subtitle: 'Will submit automatically when online.',
+        );
+        _clearForm();
+      }
     }
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HELPERS — untouched
+  // ══════════════════════════════════════════════════════════════════════════
 
   void _clearForm() {
     nameCtrl.clear();
     ageCtrl.clear();
     phoneCtrl.clear();
     setState(() {
-      gender = null;
-      symptoms = null;
-      location = null;
+      gender        = null;
+      symptoms      = null;
+      location      = null;
       selectedImage = null;
     });
   }
@@ -159,7 +372,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         content: Row(
           children: [
             Icon(
-              color == _green ? Icons.check_circle_rounded : Icons.error_rounded,
+              color == _green
+                  ? Icons.check_circle_rounded
+                  : Icons.error_rounded,
               color: Colors.white,
               size: 20,
             ),
@@ -192,7 +407,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // BUILD
+  // BUILD — 100% identical to before, zero UI change
   // ══════════════════════════════════════════════════════════════════════════
 
   @override
@@ -241,23 +456,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               ),
             ],
           ),
-
-          // ── Sticky submit button at bottom ─────────────────────────────
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: _buildSubmitBar(),
           ),
-
-          // ── Full-screen loading overlay ────────────────────────────────
           if (loading) _buildLoadingOverlay(),
         ],
       ),
     );
   }
 
-  // ── Sliver collapsing header ─────────────────────────────────────────────
   Widget _buildSliverHeader() {
     return SliverAppBar(
       expandedHeight: 80,
@@ -274,7 +484,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color.fromARGB(255, 69, 135, 221), Color.fromARGB(255, 46, 114, 203)],
+              colors: [
+                Color.fromARGB(255, 69, 135, 221),
+                Color.fromARGB(255, 46, 114, 203),
+              ],
             ),
           ),
           child: SafeArea(
@@ -310,7 +523,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ],
                   ),
                   const SizedBox(height: 10),
-                  
                 ],
               ),
             ),
@@ -321,7 +533,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // ── Personal section ─────────────────────────────────────────────────────
   Widget _buildPersonalSection() {
     return Column(
       children: [
@@ -369,7 +580,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // ── Symptoms section ─────────────────────────────────────────────────────
   Widget _buildSymptomsSection() {
     return Column(
       children: [
@@ -392,7 +602,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // ── Image section ─────────────────────────────────────────────────────────
   Widget _buildImageSection() {
     return Column(
       children: [
@@ -406,9 +615,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               color: selectedImage != null ? Colors.transparent : _fillColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: selectedImage != null ? const Color.fromARGB(255, 118, 166, 227) : _border,
+                color: selectedImage != null
+                    ? const Color.fromARGB(255, 118, 166, 227)
+                    : _border,
                 width: selectedImage != null ? 2 : 1.5,
-                // Dashed effect via decoration only (solid for Flutter compat)
               ),
             ),
             child: selectedImage != null
@@ -418,7 +628,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       fit: StackFit.expand,
                       children: [
                         Image.file(selectedImage!, fit: BoxFit.cover),
-                        // Overlay bar at bottom
                         Positioned(
                           left: 0,
                           right: 0,
@@ -480,12 +689,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     children: [
                       Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: _tealLight,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.add_photo_alternate_outlined,
-                            size: 32, color: Color.fromARGB(255, 112, 163, 230)),
+                            size: 32,
+                            color: Color.fromARGB(255, 112, 163, 230)),
                       ),
                       const SizedBox(height: 14),
                       const Text(
@@ -509,7 +719,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // ── Sticky submit bar ─────────────────────────────────────────────────────
   Widget _buildSubmitBar() {
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -532,7 +741,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           onPressed: loading ? null : submitDiagnosis,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 113, 164, 231),
-            disabledBackgroundColor: const Color.fromARGB(255, 106, 161, 232).withOpacity(0.5),
+            disabledBackgroundColor:
+                const Color.fromARGB(255, 106, 161, 232).withOpacity(0.5),
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -559,7 +769,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // ── Loading overlay ───────────────────────────────────────────────────────
   Widget _buildLoadingOverlay() {
     return Container(
       color: Colors.black.withOpacity(0.35),
@@ -580,17 +789,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(
+            children: const [
+              SizedBox(
                 width: 44,
                 height: 44,
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 115, 163, 226)),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Color.fromARGB(255, 115, 163, 226),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'Analyzing...',
                 style: TextStyle(
                   color: _textPrimary,
@@ -598,8 +809,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 4),
-              const Text(
+              SizedBox(height: 4),
+              Text(
                 'Please wait a moment',
                 style: TextStyle(color: _textSecondary, fontSize: 12),
               ),
@@ -645,13 +856,11 @@ class _StepCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ──────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Step number badge
                 Container(
                   width: 32,
                   height: 32,
@@ -691,11 +900,7 @@ class _StepCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // ── Divider ──────────────────────────────────────────────────────
           const Divider(height: 1, color: Color(0xFFF3F4F6)),
-
-          // ── Content ──────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
             child: child,
@@ -745,7 +950,8 @@ class _Field extends StatelessWidget {
         filled: true,
         fillColor: _fillColor,
         prefixIcon: Icon(icon, size: 18, color: _textSecondary),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -756,7 +962,8 @@ class _Field extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color.fromARGB(255, 108, 158, 223), width: 1.5),
+          borderSide: const BorderSide(
+              color: Color.fromARGB(255, 108, 158, 223), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -822,15 +1029,15 @@ class _DropdownField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color.fromARGB(255, 83, 141, 218), width: 1.5),
+          borderSide: const BorderSide(
+              color: Color.fromARGB(255, 83, 141, 218), width: 1.5),
         ),
       ),
       items: items
           .map((e) => DropdownMenuItem(
                 value: e,
                 child: Text(e,
-                    style: const TextStyle(
-                        fontSize: 14, color: _textPrimary)),
+                    style: const TextStyle(fontSize: 14, color: _textPrimary)),
               ))
           .toList(),
     );

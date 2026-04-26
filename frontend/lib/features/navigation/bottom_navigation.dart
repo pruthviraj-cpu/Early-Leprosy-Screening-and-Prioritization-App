@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/screens/chat.dart';
 import 'package:frontend/screens/home.dart';
+import 'package:frontend/screens/leprosy_info_screen.dart';
 import '../profile/screen/profile_screen.dart';
 
 class BottomNavScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   final List<Widget> _pages = [
     const HomePage(),
     const ChatScreen(),
+    const LeprosyInfoScreen(),
     const ProfileScreen(),
   ];
 
@@ -58,6 +60,7 @@ class _GoogleNavBar extends StatelessWidget {
   static const _items = [
     _NavItem(label: 'Home',    icon: Icons.home_outlined,         activeIcon: Icons.home_rounded),
     _NavItem(label: 'Chat',    icon: Icons.chat_bubble_outline,   activeIcon: Icons.chat_bubble_rounded),
+    _NavItem(label: 'Info',   icon: Icons.menu_book_outlined,    activeIcon: Icons.menu_book_rounded),
     _NavItem(label: 'Profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded),
   ];
 

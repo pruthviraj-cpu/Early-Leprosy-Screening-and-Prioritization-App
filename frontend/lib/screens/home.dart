@@ -272,6 +272,8 @@ class _HomePageState extends State<HomePage>
         'Saved offline. Will submit when connected.',
         const Color(0xFFF9AB00),
         subtitle: 'Your form is safely stored on this device.',
+        actionLabel: 'LEARN MORE',
+        onAction: () => Navigator.pushNamed(context, 'leprosy_info'),
       );
       _clearForm();
     }
@@ -316,7 +318,9 @@ class _HomePageState extends State<HomePage>
         await DiagnosisCacheService.deleteSynced();
 
         _showSnack('Diagnosis submitted successfully!', _green,
-            subtitle: 'Your report has been recorded.');
+            subtitle: 'Your report has been recorded.',
+            actionLabel: 'LEARN MORE',
+            onAction: () => Navigator.pushNamed(context, 'leprosy_info'));
         _clearForm();
       } else {
         // Mark pending so sync retries it
@@ -339,6 +343,8 @@ class _HomePageState extends State<HomePage>
           'No connection. Form saved locally.',
           const Color(0xFFF9AB00),
           subtitle: 'Will submit automatically when online.',
+          actionLabel: 'LEARN MORE',
+          onAction: () => Navigator.pushNamed(context, 'leprosy_info'),
         );
         _clearForm();
       }
@@ -361,7 +367,8 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  void _showSnack(String message, Color color, {String? subtitle}) {
+  void _showSnack(String message, Color color,
+      {String? subtitle, String? actionLabel, VoidCallback? onAction}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -369,6 +376,13 @@ class _HomePageState extends State<HomePage>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         backgroundColor: color,
         elevation: 4,
+        action: actionLabel != null
+            ? SnackBarAction(
+                label: actionLabel,
+                textColor: Colors.white,
+                onPressed: onAction ?? () {},
+              )
+            : null,
         content: Row(
           children: [
             Icon(
@@ -443,17 +457,19 @@ class _HomePageState extends State<HomePage>
                           child: _buildSymptomsSection(),
                         ),
                         const SizedBox(height: 16),
-                        _StepCard(
-                          step: 3,
-                          title: 'Upload Photo',
-                          subtitle: 'Clear photo of the affected area',
-                          child: _buildImageSection(),
-                        ),
-                      ],
+                          _StepCard(
+                            step: 3,
+                            title: 'Upload Photo',
+                            subtitle: 'Clear photo of the affected area',
+                            child: _buildImageSection(),
+                          ),
+                          const SizedBox(height: 24),
+                          _buildAwarenessBanner(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
           Positioned(
@@ -816,6 +832,69 @@ class _HomePageState extends State<HomePage>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAwarenessBanner() {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, 'leprosy_info'),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1A73E8), Color(0xFF62A1F5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1A73E8).withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.lightbulb_outline_rounded,
+                  color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Did you know?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Leprosy is 100% curable and treatment is free.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.white, size: 14),
+          ],
         ),
       ),
     );

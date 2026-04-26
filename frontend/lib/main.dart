@@ -23,6 +23,7 @@ import 'features/navigation/bottom_navigation.dart';
 import 'features/navigation/doctor_navigation.dart';
 
 import 'screens/doctor_home.dart';
+import 'screens/leprosy_info_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,6 +85,8 @@ class MyApp extends StatelessWidget {
 
           return DoctorHomePage(patient: patient);
         },
+
+        'leprosy_info': (_) => const LeprosyInfoScreen(),
       },
     );
   }

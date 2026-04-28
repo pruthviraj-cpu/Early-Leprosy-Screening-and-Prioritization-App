@@ -27,9 +27,5 @@ class CacheService {
     return messages;
   }
 
-  /// (Optional) On logout
-  static Future<void> closeChatBox() async {
-    await _chatBox?.close();
-    _chatBox = null;
-  }
+
 }

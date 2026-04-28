@@ -131,7 +131,6 @@ export const sendDoctorReminders = async () => {
         if (doctor.device_token) {
           await sendPushNotification(
             doctor.device_token,
-            "Dear Doctor",
             "Pending Cases Reminder",
             `You have ${pendingCount} pending cases`
           );

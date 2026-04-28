@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "870219155276",
+    "project_id": "skin-buddy-9c78f",
+    "storage_bucket": "skin-buddy-9c78f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870219155276:android:ed1d37d154de0da30231e9",
+        "android_client_info": {
+          "package_name": "com.example.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0ZpvpLxO5Amo_gCEwHOtaVz2zFQFw67M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

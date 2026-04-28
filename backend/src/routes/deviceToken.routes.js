@@ -1,9 +1,10 @@
 import express from "express";
 import { supabaseAdmin } from "../config/supabase.js";
+import authMiddleware from "../middlewares/auth.middleware.js";
 
 const devicetoken_router = express.Router();
 
-devicetoken_router.post("/save-device-token", async (req, res) => {
+devicetoken_router.post("/save-device-token",authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id; // from auth middleware
     const { device_token } = req.body;

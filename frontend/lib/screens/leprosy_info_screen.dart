@@ -137,6 +137,64 @@ class _LeprosyInfoScreenState extends State<LeprosyInfoScreen> {
         {'m': 'कुष्ठ रोग एक अभिशाप है।', 'f': 'यह एक जीवाणु संक्रमण है।'},
         {'m': 'यह छूने से फैलता है।', 'f': 'इसके लिए लंबे समय तक निकट संपर्क की आवश्यकता होती है।'},
       ]
+    },
+    'मराठी': {
+      'appBar': 'राष्ट्रीय आरोग्य मार्गदर्शक तत्त्वे',
+      'title': 'कुष्ठरोग जागरूकता आणि मार्गदर्शन',
+      'subtitle': 'अधिकृत माहिती पोर्टल',
+      'sections': [
+        {
+          'title': 'कुष्ठरोग म्हणजे काय?',
+          'icon': Icons.info_outline_rounded,
+          'content': 'कुष्ठरोग (हॅन्सेनचा आजार) हा मायकोबॅक्टेरियम लेप्रेमुळे होणारा एक जुनाट संसर्गजन्य आजार आहे. याचा प्रामुख्याने त्वचा आणि मज्जातंतूंवर परिणाम होतो.',
+        },
+        {
+          'title': 'कारणे आणि प्रसार',
+          'icon': Icons.people_outline_rounded,
+          'content': 'उपचार न घेतलेल्या रुग्णांशी दीर्घकाळ जवळचा संपर्क आल्यास श्वासावाटे उडणाऱ्या थेंबांमधून हा आजार पसरतो. हा अनुवंशिक नाही.',
+        },
+        {
+          'title': 'सुरुवातीची लक्षणे',
+          'icon': Icons.visibility_outlined,
+          'content': '• त्वचेवर फिके किंवा लालसर डाग ज्यावर संवेदना नसते\n• हात किंवा पायांना मुंग्या येणे\n• स्नायूंमध्ये अशक्तपणा\n• सुजलेल्या नसा',
+        },
+        {
+          'title': 'उपचार (MDT)',
+          'icon': Icons.medication_outlined,
+          'content': 'कुष्ठरोग १००% बरा होऊ शकतो. सर्व सरकारी आरोग्य केंद्रांवर मल्टी-ड्रग थेरपी (MDT) मोफत दिली जाते.',
+        },
+        {
+          'title': 'वैद्यकीय मदत कधी घ्यावी',
+          'icon': Icons.medical_services_outlined,
+          'content': 'त्वचेवर असा कोणताही डाग आढळल्यास ज्याला स्पर्श, उष्णता किंवा वेदना जाणवत नाही, तर ताबडतोब डॉक्टरांचा सल्ला घ्या.',
+        },
+      ],
+      'schemeTitle': 'सरकारी योजना आणि मदत',
+      'schemes': [
+        {
+          'name': 'राष्ट्रीय कुष्ठरोग निर्मूलन कार्यक्रम (NLEP)',
+          'desc': 'सर्व सरकारी आरोग्य केंद्रांवर (PHC/CHC) मोफत निदान आणि मल्टी-ड्रग थेरपी (MDT) प्रदान करते.',
+          'url': 'https://nlep.nic.in/',
+          'btn': 'NLEP पोर्टलला भेट द्या',
+        },
+        {
+          'name': 'पुनर्रचनात्मक शस्त्रक्रिया (RCS)',
+          'desc': 'कुष्ठरोगाशी संबंधित विकृती सुधारण्यासाठी आर्थिक मदत आणि मोफत शस्त्रक्रिया प्रदान केली जाते.',
+          'url': 'https://nlep.nic.in/ReconstructiveSurgery.html',
+          'btn': 'शस्त्रक्रियेचे तपशील',
+        },
+        {
+          'name': 'आरोग्य मंत्रालय (NLEP विभाग)',
+          'desc': 'कुष्ठरोग निर्मूलनासाठी आरोग्य आणि कुटुंब कल्याण मंत्रालयाचे अधिकृत पोर्टल.',
+          'url': 'https://main.mohfw.gov.in/Major-Programmes/National-Leprosy-Eradication-Programme-NLEP',
+          'btn': 'MoHFW पोर्टलला भेट द्या',
+        },
+      ],
+      'mythTitle': 'गैरसमज आणि सत्य',
+      'myths': [
+        {'m': 'कुष्ठरोग हा शाप आहे.', 'f': 'हा एक जिवाणू संसर्ग आहे.'},
+        {'m': 'हा स्पर्शाने पसरतो.', 'f': 'यासाठी दीर्घकाळ जवळचा संपर्क आवश्यक असतो.'},
+      ]
     }
   };
 
@@ -304,8 +362,8 @@ class _MythFactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mythLabel = lang == 'English' ? 'MYTH' : 'भ्रम';
-    final factLabel = lang == 'English' ? 'FACT' : 'तथ्य';
+    final mythLabel = lang == 'English' ? 'MYTH' : (lang == 'हिंदी' ? 'भ्रम' : 'गैरसमज');
+    final factLabel = lang == 'English' ? 'FACT' : (lang == 'हिंदी' ? 'तथ्य' : 'सत्य');
 
     return Container(
       padding: const EdgeInsets.all(14),

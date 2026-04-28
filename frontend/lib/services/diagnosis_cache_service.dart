@@ -5,7 +5,6 @@ class DiagnosisCacheService {
   static const _boxName = 'pending_diagnoses';
   static Box<PendingDiagnosis>? _box;
 
-  /// Call once in main.dart after Hive.initFlutter()
   static Future<void> init() async {
     if (!Hive.isBoxOpen(_boxName)) {
       _box = await Hive.openBox<PendingDiagnosis>(_boxName);
@@ -32,7 +31,6 @@ class DiagnosisCacheService {
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
-  /// Remove synced entries to keep storage clean
   static Future<void> deleteSynced() async {
     if (_box == null) return;
     final synced = _box!.values

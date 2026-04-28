@@ -4,7 +4,6 @@ import '../features/chat/model/chat_message.dart';
 class CacheService {
   static Box<ChatMessage>? _chatBox;
 
-  /// 🔹 Call this AFTER login
   static Future<void> openUserChatBox(String userId) async {
     final boxName = 'chats_$userId';
 

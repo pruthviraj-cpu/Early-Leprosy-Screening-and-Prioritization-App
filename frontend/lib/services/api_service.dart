@@ -16,7 +16,7 @@ class ApiService {
     Uri.parse('$baseUrl/chat'),
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token', // 🔥 REQUIRED
+      'Authorization': 'Bearer $token',
     },
     body: jsonEncode({
       'message': message,
@@ -37,7 +37,7 @@ static Future<Map<String, dynamic>> getProfile() async {
       Uri.parse('$baseUrl/profile/me'),
       headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token', // 🔥 REQUIRED
+      'Authorization': 'Bearer $token', 
     },
     );
 
@@ -65,7 +65,7 @@ static Future<Map<String, dynamic>> getProfile() async {
       Uri.parse('$baseUrl/profile/me'),
       headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token', // 🔥 REQUIRED
+      'Authorization': 'Bearer $token',
     },
       body: jsonEncode(body),
     );
@@ -76,5 +76,4 @@ static Future<Map<String, dynamic>> getProfile() async {
       throw Exception('Failed to update profile: ${response.statusCode}');
     }
   }
-
 }

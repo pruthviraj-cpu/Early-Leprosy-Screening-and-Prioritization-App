@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.routes.js'; // Add .js extension
 import profileRoutes from './routes/profile.routes.js';
 import chatRoutes from './routes/chat.routes.js';
 import diagnosisroutes from './routes/diagnosis.routes.js';
+import devicetoken_router from './routes/deviceToken.routes.js';
 const app = express();
 
 // Middleware
@@ -25,6 +26,8 @@ app.use('/api/profile', profileRoutes);
 app.use('/api', chatRoutes);
 // diagnosis routes
 app.use('/api/diagnosis', diagnosisroutes);
+// devicetoken routes
+app.use('/api', devicetoken_router);
 
 // Health check
 app.get('/health', (req, res) => {

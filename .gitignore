@@ -68,3 +68,9 @@ logs/
 *.onnx
 
 /uploads
+
+
+# Firebase secrets
+backend/src/config/firebase-key.json
+frontend/android/app/google-services.json
+backend/src/notificationtest.js

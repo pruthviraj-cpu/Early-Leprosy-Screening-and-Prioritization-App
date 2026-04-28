@@ -1,4 +1,3 @@
-// src/controller/auth.controller.js
 import authService from '../services/auth.service.js';
 
 export const signup = async (req, res) => {
@@ -46,7 +45,6 @@ export const login = async (req, res) => {
 
     const data = await authService.login(email, password, role);
 
-    // Remove supabaseSession from response if you don't need it
     const { supabaseSession, ...responseData } = data;
 
     res.status(200).json(responseData);
@@ -62,10 +60,8 @@ export const login = async (req, res) => {
   }
 };
 
-// Optional: Get current user
 export const getCurrentUser = async (req, res) => {
   try {
-    // Assuming you have auth middleware that sets req.user
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "Not authenticated" });
     }

@@ -19,22 +19,18 @@ class _MyRegisterState extends State<MyRegister> {
   bool _obscureConfirmPassword = true;
   bool _loading = false;
 
-  // for role based signup
   String _selectedRole = "normal_user";
 
   final List<String> _roles = ["normal_user", "doctor"];
 
-  // for admin secret input (only for doctor signup)
   final adminSecretController = TextEditingController();
   bool _obscureAdminSecret = true;
 
-  /// 🔹 Validation + Signup
   Future<void> signupUser() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final confirmPassword = confirmPasswordController.text.trim();
 
-    // 🔴 Validation
     if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       _showError("All fields are required");
       return;

@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-
+   //flutter pub run build_runner build.
 part 'diagnosis_result.g.dart';
 
 @HiveType(typeId: 3)

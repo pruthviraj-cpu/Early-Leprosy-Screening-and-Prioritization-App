@@ -275,8 +275,6 @@ class _HomePageState extends State<HomePage>
         'Saved offline. Will submit when connected.',
         const Color(0xFFF9AB00),
         subtitle: 'Your form is safely stored on this device.',
-        actionLabel: 'LEARN MORE',
-        onAction: () => Navigator.pushNamed(context, 'leprosy_info'),
       );
       _clearForm();
     }
@@ -348,9 +346,7 @@ class _HomePageState extends State<HomePage>
         _showSnack(
           'No connection. Form saved locally.',
           const Color(0xFFF9AB00),
-          subtitle: 'Will submit automatically when online.',
-          actionLabel: 'LEARN MORE',
-          onAction: () => Navigator.pushNamed(context, 'leprosy_info'),
+          subtitle: 'Will submit automatically when online.'
         );
         _clearForm();
       }
@@ -782,13 +778,9 @@ class _HomePageState extends State<HomePage>
         child: ElevatedButton(
           onPressed: loading ? null : submitDiagnosis,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 113, 164, 231),
-            disabledBackgroundColor: const Color.fromARGB(
-              255,
-              106,
-              161,
-              232,
-            ).withOpacity(0.5),
+            backgroundColor: const Color.fromARGB(255, 32, 125, 248),
+            disabledBackgroundColor:
+                const Color.fromARGB(255, 0, 85, 197).withOpacity(0.5),
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(

@@ -43,7 +43,6 @@ class _DoctorBottomNavScreenState extends State<DoctorBottomNavScreen> {
   }
 }
 
-// ─── Google / Play Store style nav bar ───────────────────────────────────────
 class _GoogleNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;

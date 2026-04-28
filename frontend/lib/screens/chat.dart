@@ -5,24 +5,23 @@ import '../services/api_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 
-// ─── Design Tokens (Gemini-inspired) ──────────────────────────────────────────
 const _white        = Color(0xFFFFFFFF);
-const _bgPage       = Color(0xFFF0F4F9); // Gemini's subtle blue-tinted bg
+const _bgPage       = Color(0xFFF0F4F9); 
 const _surfaceCard  = Color(0xFFFFFFFF);
-const _userBubble   = Color(0xFFE8F0FE); // Google blue-tinted user bubble
+const _userBubble   = Color(0xFFE8F0FE); 
 const _userText     = Color(0xFF1F1F1F);
 const _aiText       = Color(0xFF1F1F1F);
 const _hintText     = Color(0xFF9AA0A6);
 const _iconGrey     = Color(0xFF5F6368);
 const _divider      = Color(0xFFE8EAED);
-const _accentBlue   = Color(0xFF1A73E8); // Google blue
+const _accentBlue   = Color(0xFF1A73E8); 
 const _pendingAmber = Color(0xFFF9AB00);
 const _errorRed     = Color(0xFFD93025);
 const _successGreen = Color(0xFF188038);
 const _offlineBg    = Color(0xFFFEF7E0);
 const _offlineText  = Color(0xFF7D5700);
 
-// ─── Gemini sparkle gradient colors ───────────────────────────────────────────
+
 const _geminiBlue   = Color(0xFF4285F4);
 const _geminiRed    = Color(0xFF1A73E8); 
 const _geminiYellow = Color(0xFF1A73E8); 
@@ -516,7 +515,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ── AI Message (Gemini style — no bubble, just icon + text) ──────────────────
+  // ── AI Message (no bubble, just icon + text) ──────────────────
   Widget _buildAiMessage(ChatMessage chat) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -639,7 +638,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 // ── Sub-Widgets ───────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 
-/// Gemini-style 4-color sparkle icon
 class _GeminiSparkleIcon extends StatelessWidget {
   final double size;
   const _GeminiSparkleIcon({required this.size});

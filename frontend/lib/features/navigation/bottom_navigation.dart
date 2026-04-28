@@ -47,7 +47,6 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   }
 }
 
-// ─── Google / Play Store style NavigationBar ──────────────────────────────────
 class _GoogleNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -94,7 +93,6 @@ class _GoogleNavBar extends StatelessWidget {
   }
 }
 
-// ─── Individual nav tile with pill indicator ──────────────────────────────────
 class _NavTile extends StatelessWidget {
   final _NavItem item;
   final bool selected;

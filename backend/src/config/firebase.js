@@ -1,13 +1,3 @@
-// import admin from "firebase-admin";
-// import serviceAccount from "./firebase-key.json" assert { type: "json" };
-
-// // Initialize once when server starts
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount),
-// });
-
-// export default admin;
-
 import admin from "firebase-admin";
 import fs from "fs";
 import path from "path";

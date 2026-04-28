@@ -2,7 +2,7 @@
 import cron from "node-cron";
 import { supabaseAdmin } from "../config/supabase.js";
 import { sendDoctorReminderEmail } from "./emailReminder.js";
-import { sendPushNotification } from "./pushNotification.js";
+import { sendPushNotification } from "./pushNotifications.js";
 
 // ─────────────────────────────────────────────────────────────
 //  ✅ CONFIGURE YOUR REMINDER SCHEDULE HERE

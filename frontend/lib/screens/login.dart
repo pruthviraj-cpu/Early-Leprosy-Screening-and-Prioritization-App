@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/services/fcm_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/services/secure_storage.dart';
 import 'package:frontend/services/cache_service.dart';
@@ -75,6 +76,7 @@ class _MyLoginState extends State<MyLogin> {
         await SecureStorage.saveIsProfileCompleted(
           data['user']['is_profile_completed'] ?? false,
         );
+        await FCMService.init();
 
         // 🔹 GET USER ID
         final userId = data['user']['id'];

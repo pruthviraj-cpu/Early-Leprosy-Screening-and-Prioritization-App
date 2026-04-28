@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/services/fcm_service.dart';
 import 'package:frontend/services/secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
@@ -31,7 +30,6 @@ Future<void> main() async {
 
   // for local notifications using flutter
   await Firebase.initializeApp();
-  await FCMService.init();
   await Hive.initFlutter();
 
   Hive.registerAdapter(ChatMessageAdapter());

@@ -3,30 +3,6 @@ import FormData from "form-data";
 import { supabaseAdmin } from "../config/supabase.js";
 import fetch from "node-fetch";
 
-
-// /*  ANALYZE IMAGE (HF SPACE)  */
-// export const analyzeImageService = async (file) => {
-//     const form = new FormData();
-//     form.append("file", fs.createReadStream(file.path));
-
-//     const response = await fetch(
-//         "https://tes112t-leprosy.hf.space/predict",
-//         {
-//             method: "POST",
-//             body: form,
-//             headers: form.getHeaders()
-//         }
-//     );
-
-//     if (!response.ok) {
-//         throw new Error("Failed to analyze image");
-//     }
-
-//     return response.json();
-// };
-
-
-/*  SAVE DIAGNOSIS  */
 export const saveDiagnosisService = async (userId, payload) => {
     const { full_name, symptoms, affected_area, number, probability, age, gender, latitude, longitude, image_url } = payload;
 
@@ -41,9 +17,6 @@ export const saveDiagnosisService = async (userId, payload) => {
     return data;
 };
 
-
-
-/*  GET USER DIAGNOSES  */
 export const getUserDiagnosesService = async (userId) => {
     const { data, error } = await supabaseAdmin
         .from("diagnosis_results")
@@ -56,15 +29,11 @@ export const getUserDiagnosesService = async (userId) => {
     return data;
 };
 
-
-
 export const createDiagnosisService = async (userId, file, body) => {
     try {
         if (!file) {
             throw new Error("File not provided");
         }
-
-        /* 1️⃣ SEND IMAGE TO HF */
 
         const form = new FormData();
         form.append("file", fs.createReadStream(file.path));
@@ -87,8 +56,6 @@ export const createDiagnosisService = async (userId, file, body) => {
         const prediction = await response.json();
         console.log("HF RESPONSE:", prediction);
 
-        /* 2️⃣ READ FILE BUFFER (ONLY FOR SUPABASE) */
-
         const fileBuffer = fs.readFileSync(file.path);
 
         const fileExt = file.originalname.split(".").pop();
@@ -103,8 +70,6 @@ export const createDiagnosisService = async (userId, file, body) => {
         if (uploadError) {
             throw new Error(uploadError.message);
         }
-
-        /* 3️⃣ INSERT INTO DB */
 
         const {
             symptoms,
@@ -146,12 +111,8 @@ export const createDiagnosisService = async (userId, file, body) => {
     }
 };
 
-
-
-
 export const getAllPatientsService = async () => {
     try {
-        // Get all diagnosis results
         const { data: diagnoses, error: diagnosesError } = await supabaseAdmin
             .from("diagnosis_results")
             .select(`
@@ -180,7 +141,6 @@ export const getAllPatientsService = async () => {
             return [];
         }
 
-        // Get all unique user IDs
         const userIds = [...new Set(diagnoses.map(d => d.user_id))];
 
         // Fetch profiles for these users
@@ -196,7 +156,6 @@ export const getAllPatientsService = async () => {
 
         if (profilesError) throw new Error(profilesError.message);
 
-        // Create a map of profiles by user_id
         const profilesMap = new Map();
         profiles?.forEach(profile => {
             profilesMap.set(profile.id, profile);
@@ -245,9 +204,6 @@ export const getAllPatientsService = async () => {
     }
 };
 
-// Add these to your existing diagnosis.service.js file
-
-/*  UPDATE DOCTOR REVIEW  */
 export const updateDoctorReviewService = async (diagnosisId, doctorId, review) => {
     try {
         // Validate review value
@@ -275,8 +231,6 @@ export const updateDoctorReviewService = async (diagnosisId, doctorId, review) =
     }
 };
 
-
-/*  GET PATIENT BY ID WITH REVIEW  */
 export const getPatientByIdService = async (diagnosisId) => {
     try {
         const { data, error } = await supabaseAdmin

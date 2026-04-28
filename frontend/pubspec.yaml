@@ -54,6 +54,9 @@ dependencies:
   # for location
   geolocator: ^14.0.2  # Add this line
   url_launcher: ^6.3.2
+  
+  firebase_core: ^2.0.0
+  firebase_messaging: ^14.0.0
 
 dev_dependencies:
 

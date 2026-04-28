@@ -289,15 +289,6 @@ class _MyLoginState extends State<MyLogin> {
                           ),
                         ),
                       ),
-                      // TextButton(
-                      //   onPressed: () {},
-                      //   child: const Text(
-                      //     'Forgot Password?',
-                      //     style: TextStyle(
-                      //       decoration: TextDecoration.underline,
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                 ],

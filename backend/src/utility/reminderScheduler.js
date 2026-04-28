@@ -2,6 +2,7 @@
 import cron from "node-cron";
 import { supabaseAdmin } from "../config/supabase.js";
 import { sendDoctorReminderEmail } from "./emailReminder.js";
+import { sendPushNotification } from "./pushNotification.js";
 
 // ─────────────────────────────────────────────────────────────
 //  ✅ CONFIGURE YOUR REMINDER SCHEDULE HERE
@@ -78,7 +79,8 @@ export const sendDoctorReminders = async () => {
     // Step 2: Get all doctors from profiles (role = 'doctor')
     const { data: doctors, error: doctorsError } = await supabaseAdmin
       .from("profiles")
-      .select("id, full_name, role")
+      // .select("id, full_name, role")
+      .select("id, full_name, role, device_token")
       .eq("role", "doctor");
 
     if (doctorsError) {
@@ -125,6 +127,15 @@ export const sendDoctorReminders = async () => {
       try {
         await sendDoctorReminderEmail(email, doctor.full_name || "Doctor", pendingCount);
         emailsSent++;
+        // PUSH (new)
+        if (doctor.device_token) {
+          await sendPushNotification(
+            doctor.device_token,
+            "Dear Doctor",
+            "Pending Cases Reminder",
+            `You have ${pendingCount} pending cases`
+          );
+        }
       } catch (emailError) {
         console.error(
           `[ReminderScheduler] ❌ Failed to send email to ${email}:`,

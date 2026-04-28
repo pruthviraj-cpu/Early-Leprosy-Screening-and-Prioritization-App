@@ -13,19 +13,19 @@ import '../models/pending_diagnosis.dart';
 import '../services/diagnosis_cache_service.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const _bg            = Color(0xFFF6F8FC);
-const _surface       = Color(0xFFFFFFFF);
-const _teal          = Color(0xFF1A73E8);
-const _tealLight     = Color(0xFFE8F0FE);
-const _tealDark      = Color(0xFF1557B0);
-const _textPrimary   = Color(0xFF1F1F1F);
+const _bg = Color(0xFFF6F8FC);
+const _surface = Color(0xFFFFFFFF);
+const _teal = Color(0xFF1A73E8);
+const _tealLight = Color(0xFFE8F0FE);
+const _tealDark = Color(0xFF1557B0);
+const _textPrimary = Color(0xFF1F1F1F);
 const _textSecondary = Color(0xFF5F6368);
-const _textHint      = Color(0xFF9AA0A6);
-const _border        = Color(0xFFE8EAED);
-const _borderFocus   = Color(0xFF1A73E8);
-const _red           = Color(0xFFD93025);
-const _green         = Color(0xFF188038);
-const _fillColor     = Color(0xFFF8F9FA);
+const _textHint = Color(0xFF9AA0A6);
+const _border = Color(0xFFE8EAED);
+const _borderFocus = Color(0xFF1A73E8);
+const _red = Color(0xFFD93025);
+const _green = Color(0xFF188038);
+const _fillColor = Color(0xFFF8F9FA);
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -38,24 +38,24 @@ class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController nameCtrl  = TextEditingController();
-  final TextEditingController ageCtrl   = TextEditingController();
+  final TextEditingController nameCtrl = TextEditingController();
+  final TextEditingController ageCtrl = TextEditingController();
   final TextEditingController phoneCtrl = TextEditingController();
 
   String? gender;
   String? symptoms;
   String? location;
 
-  File?  selectedImage;
-  bool   loading    = false;
-  bool   _isSyncing = false;
+  File? selectedImage;
+  bool loading = false;
+  bool _isSyncing = false;
 
   late final StreamSubscription<ConnectivityResult> _connectivitySub;
   final ImagePicker _picker = ImagePicker();
 
-  final List<String> genders      = ['Male', 'Female', 'Other'];
+  final List<String> genders = ['Male', 'Female', 'Other'];
   final List<String> symptomsList = ['Skin patches', 'Numbness', 'Lesions'];
-  final List<String> locations    = ['Hand', 'Leg', 'Face'];
+  final List<String> locations = ['Hand', 'Leg', 'Face'];
 
   // ══════════════════════════════════════════════════════════════════════════
   // LIFECYCLE
@@ -81,8 +81,7 @@ class _HomePageState extends State<HomePage>
   // ══════════════════════════════════════════════════════════════════════════
 
   void _listenToInternet() {
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((result) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
       if (result != ConnectivityResult.none) {
         _syncPendingForms();
       }
@@ -144,28 +143,31 @@ class _HomePageState extends State<HomePage>
           );
 
           request.headers['Authorization'] = 'Bearer $token';
-          request.fields['full_name']     = entry.fullName;
-          request.fields['age']           = entry.age;
-          request.fields['gender']        = entry.gender;
-          request.fields['number']        = entry.phone;
-          request.fields['symptoms']      = entry.symptoms;
+          request.fields['full_name'] = entry.fullName;
+          request.fields['age'] = entry.age;
+          request.fields['gender'] = entry.gender;
+          request.fields['number'] = entry.phone;
+          request.fields['symptoms'] = entry.symptoms;
           request.fields['affected_area'] = entry.affectedArea;
-          request.fields['latitude']      = position.latitude.toString();
-          request.fields['longitude']     = position.longitude.toString();
+          request.fields['latitude'] = position.latitude.toString();
+          request.fields['longitude'] = position.longitude.toString();
           request.files.add(
             await http.MultipartFile.fromPath('file', entry.imagePath),
           );
 
-          final streamed  = await request.send();
-          final response  = await http.Response.fromStream(streamed);
-          final data      = jsonDecode(response.body);
+          final streamed = await request.send();
+          final response = await http.Response.fromStream(streamed);
+          final data = jsonDecode(response.body);
 
           if (response.statusCode == 200 && data['success'] == true) {
             entry.syncStatus = 'synced';
             await DiagnosisCacheService.save(entry);
             if (mounted) {
-              _showSnack('Offline diagnosis synced successfully!', _green,
-                  subtitle: 'Your saved form was sent.');
+              _showSnack(
+                'Offline diagnosis synced successfully!',
+                _green,
+                subtitle: 'Your saved form was sent.',
+              );
             }
           } else {
             entry.syncStatus = 'pending'; // retry next time
@@ -212,7 +214,8 @@ class _HomePageState extends State<HomePage>
     }
     if (permission == LocationPermission.deniedForever)
       throw Exception(
-          'Location permissions are permanently denied, cannot request.');
+        'Location permissions are permanently denied, cannot request.',
+      );
 
     return Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
@@ -245,22 +248,22 @@ class _HomePageState extends State<HomePage>
 
     // ── 1️⃣  Save to Hive immediately (offline-first) ─────────────────────
     final entry = PendingDiagnosis(
-      id:           '${DateTime.now().millisecondsSinceEpoch}_diag',
-      fullName:     nameCtrl.text.trim(),
-      age:          ageCtrl.text.trim(),
-      gender:       gender ?? '',
-      phone:        phoneCtrl.text.trim(),
-      symptoms:     symptoms ?? '',
+      id: '${DateTime.now().millisecondsSinceEpoch}_diag',
+      fullName: nameCtrl.text.trim(),
+      age: ageCtrl.text.trim(),
+      gender: gender ?? '',
+      phone: phoneCtrl.text.trim(),
+      symptoms: symptoms ?? '',
       affectedArea: location ?? '',
-      imagePath:    selectedImage!.path,
-      syncStatus:   'pending',
-      createdAt:    DateTime.now(),
+      imagePath: selectedImage!.path,
+      syncStatus: 'pending',
+      createdAt: DateTime.now(),
     );
     await DiagnosisCacheService.save(entry);
 
     // ── 2️⃣  Check connectivity ────────────────────────────────────────────
     final connectivity = await Connectivity().checkConnectivity();
-    final hasInternet  = connectivity != ConnectivityResult.none;
+    final hasInternet = connectivity != ConnectivityResult.none;
 
     if (hasInternet) {
       // Send right now
@@ -291,21 +294,21 @@ class _HomePageState extends State<HomePage>
       );
 
       request.headers['Authorization'] = 'Bearer $token';
-      request.fields['full_name']     = entry.fullName;
-      request.fields['age']           = entry.age;
-      request.fields['gender']        = entry.gender;
-      request.fields['number']        = entry.phone;
-      request.fields['symptoms']      = entry.symptoms;
+      request.fields['full_name'] = entry.fullName;
+      request.fields['age'] = entry.age;
+      request.fields['gender'] = entry.gender;
+      request.fields['number'] = entry.phone;
+      request.fields['symptoms'] = entry.symptoms;
       request.fields['affected_area'] = entry.affectedArea;
-      request.fields['latitude']      = position.latitude.toString();
-      request.fields['longitude']     = position.longitude.toString();
+      request.fields['latitude'] = position.latitude.toString();
+      request.fields['longitude'] = position.longitude.toString();
       request.files.add(
         await http.MultipartFile.fromPath('file', entry.imagePath),
       );
 
-      final streamed  = await request.send();
-      final response  = await http.Response.fromStream(streamed);
-      final data      = jsonDecode(response.body);
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+      final data = jsonDecode(response.body);
 
       setState(() => loading = false);
       ScaffoldMessenger.of(context).clearSnackBars();
@@ -315,10 +318,13 @@ class _HomePageState extends State<HomePage>
         await DiagnosisCacheService.save(entry);
         await DiagnosisCacheService.deleteSynced();
 
-        _showSnack('Diagnosis submitted successfully!', _green,
-            subtitle: 'Your report has been recorded.',
-            actionLabel: 'LEARN MORE',
-            onAction: () => Navigator.pushNamed(context, 'leprosy_info'));
+        _showSnack(
+          'Diagnosis submitted successfully!',
+          _green,
+          subtitle: 'Your report has been recorded.',
+          actionLabel: 'LEARN MORE',
+          onAction: () => Navigator.pushNamed(context, 'leprosy_info'),
+        );
         _clearForm();
       } else {
         // Mark pending so sync retries it
@@ -356,15 +362,20 @@ class _HomePageState extends State<HomePage>
     ageCtrl.clear();
     phoneCtrl.clear();
     setState(() {
-      gender        = null;
-      symptoms      = null;
-      location      = null;
+      gender = null;
+      symptoms = null;
+      location = null;
       selectedImage = null;
     });
   }
 
-  void _showSnack(String message, Color color,
-      {String? subtitle, String? actionLabel, VoidCallback? onAction}) {
+  void _showSnack(
+    String message,
+    Color color, {
+    String? subtitle,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -394,17 +405,23 @@ class _HomePageState extends State<HomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(message,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13)),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontSize: 11)),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -453,27 +470,22 @@ class _HomePageState extends State<HomePage>
                           child: _buildSymptomsSection(),
                         ),
                         const SizedBox(height: 16),
-                          _StepCard(
-                            step: 3,
-                            title: 'Upload Photo',
-                            subtitle: 'Clear photo of the affected area',
-                            child: _buildImageSection(),
-                          ),
-                          const SizedBox(height: 24),
-                          _buildAwarenessBanner(),
-                        ],
-                      ),
+                        _StepCard(
+                          step: 3,
+                          title: 'Upload Photo',
+                          subtitle: 'Clear photo of the affected area',
+                          child: _buildImageSection(),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildAwarenessBanner(),
+                      ],
                     ),
                   ),
                 ),
+              ),
             ],
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildSubmitBar(),
-          ),
+          Positioned(left: 0, right: 0, bottom: 0, child: _buildSubmitBar()),
           if (loading) _buildLoadingOverlay(),
         ],
       ),
@@ -646,7 +658,9 @@ class _HomePageState extends State<HomePage>
                           bottom: 0,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.bottomCenter,
@@ -659,8 +673,11 @@ class _HomePageState extends State<HomePage>
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.check_circle_rounded,
-                                    color: Colors.white, size: 16),
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                                 const SizedBox(width: 6),
                                 const Text(
                                   'Photo selected',
@@ -675,7 +692,9 @@ class _HomePageState extends State<HomePage>
                                   onTap: pickImage,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.white.withOpacity(0.25),
                                       borderRadius: BorderRadius.circular(20),
@@ -683,9 +702,10 @@ class _HomePageState extends State<HomePage>
                                     child: const Text(
                                       'Change',
                                       style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600),
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -705,9 +725,11 @@ class _HomePageState extends State<HomePage>
                           color: _tealLight,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.add_photo_alternate_outlined,
-                            size: 32,
-                            color: Color.fromARGB(255, 112, 163, 230)),
+                        child: const Icon(
+                          Icons.add_photo_alternate_outlined,
+                          size: 32,
+                          color: Color.fromARGB(255, 112, 163, 230),
+                        ),
                       ),
                       const SizedBox(height: 14),
                       const Text(
@@ -734,7 +756,11 @@ class _HomePageState extends State<HomePage>
   Widget _buildSubmitBar() {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
+        16,
+        12,
+        16,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
       decoration: BoxDecoration(
         color: _surface,
         border: const Border(top: BorderSide(color: _border, width: 1)),
@@ -861,8 +887,11 @@ class _HomePageState extends State<HomePage>
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.lightbulb_outline_rounded,
-                  color: Colors.white, size: 24),
+              child: const Icon(
+                Icons.lightbulb_outline_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -880,16 +909,16 @@ class _HomePageState extends State<HomePage>
                   SizedBox(height: 4),
                   Text(
                     'Leprosy is 100% curable and treatment is free.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                color: Colors.white, size: 14),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white,
+              size: 14,
+            ),
           ],
         ),
       ),
@@ -958,18 +987,22 @@ class _StepCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                          color: _textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        )),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: _textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 1),
-                    Text(subtitle,
-                        style: const TextStyle(
-                          color: _textSecondary,
-                          fontSize: 12,
-                        )),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: _textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -1025,8 +1058,10 @@ class _Field extends StatelessWidget {
         filled: true,
         fillColor: _fillColor,
         prefixIcon: Icon(icon, size: 18, color: _textSecondary),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 14,
+          horizontal: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -1038,7 +1073,9 @@ class _Field extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-              color: Color.fromARGB(255, 108, 158, 223), width: 1.5),
+            color: Color.fromARGB(255, 108, 158, 223),
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1079,8 +1116,11 @@ class _DropdownField extends StatelessWidget {
       onChanged: onChanged,
       dropdownColor: _surface,
       borderRadius: BorderRadius.circular(14),
-      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-          color: _textSecondary, size: 20),
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: _textSecondary,
+        size: 20,
+      ),
       style: const TextStyle(
         fontSize: 14,
         color: _textPrimary,
@@ -1092,8 +1132,10 @@ class _DropdownField extends StatelessWidget {
         filled: true,
         fillColor: _fillColor,
         prefixIcon: Icon(icon, size: 18, color: _textSecondary),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 14,
+          horizontal: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -1105,15 +1147,21 @@ class _DropdownField extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-              color: Color.fromARGB(255, 83, 141, 218), width: 1.5),
+            color: Color.fromARGB(255, 83, 141, 218),
+            width: 1.5,
+          ),
         ),
       ),
       items: items
-          .map((e) => DropdownMenuItem(
-                value: e,
-                child: Text(e,
-                    style: const TextStyle(fontSize: 14, color: _textPrimary)),
-              ))
+          .map(
+            (e) => DropdownMenuItem(
+              value: e,
+              child: Text(
+                e,
+                style: const TextStyle(fontSize: 14, color: _textPrimary),
+              ),
+            ),
+          )
           .toList(),
     );
   }

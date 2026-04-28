@@ -1,33 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/services/fcm_service.dart';
 import 'package:frontend/services/secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-
+// import 'package:shared_preferences/shared_preferences.dart';
 import 'features/chat/model/chat_message.dart';
 import 'models/diagnosis_result.dart';
 import 'features/profile/model/user_profile.dart';
-
 import 'models/pending_diagnosis.dart';
 import 'services/diagnosis_cache_service.dart';
-
-// import 'screens/home.dart';
 import 'screens/login.dart';
 import 'screens/register.dart';
-// import 'screens/chat.dart';
-// import 'services/cache_service.dart';
-
-import 'features/profile/screen/profile_screen.dart';
-
+// import 'features/profile/screen/profile_screen.dart';
 import 'features/navigation/bottom_navigation.dart';
 import 'features/navigation/doctor_navigation.dart';
-
 import 'screens/doctor_home.dart';
 import 'screens/leprosy_info_screen.dart';
+
+// firebase packages
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+
+Future<void> backgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Background message: ${message.notification?.title}");
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // for local notifications using flutter
+  await Firebase.initializeApp();
+  await FCMService.init();
   await Hive.initFlutter();
 
   Hive.registerAdapter(ChatMessageAdapter());
@@ -41,6 +45,8 @@ Future<void> main() async {
 
   final token = await SecureStorage.getToken();
   final role = await SecureStorage.getUserRole();
+
+  FirebaseMessaging.onBackgroundMessage(backgroundHandler);
 
   runApp(MyApp(isLoggedIn: token != null, role: role));
 }

@@ -1,22 +1,6 @@
 import { saveDiagnosisService, getUserDiagnosesService, createDiagnosisService, getAllPatientsService,updateDoctorReviewService ,getPatientByIdService} from "../services/diagnosis.service.js";
 import fs from "fs";
 
-/* analyze (HF only) */
-// export const analyzeDiagnosis = async (req, res) => {
-//     try {
-//         if (!req.file) {
-//             return res.status(400).json({ error: "Image file is required" });
-//         }
-
-//         const prediction = await analyzeImageService(req.file);
-
-//         res.json(prediction);
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-/* SAVE DIAGNOSIS  */
 export const saveDiagnosis = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -41,7 +25,6 @@ export const saveDiagnosis = async (req, res) => {
     }
 };
 
-/*  GET DIAGNOSIS HISTORY*/
 export const getUserDiagnoses = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -60,8 +43,6 @@ export const getUserDiagnoses = async (req, res) => {
     }
 
 };
-
-
 
 export const createDiagnosis = async (req, res) => {
     try {
@@ -97,10 +78,6 @@ export const createDiagnosis = async (req, res) => {
         });
     }
 };
-
-
-/*  DOCTOR LEDGER CONTROLLER  */
-
 
 export const getAllPatients = async (req, res) => {
     try {
@@ -169,8 +146,6 @@ export const updateDoctorReview = async (req, res) => {
     }
 };
 
-
-/*  GET PATIENT BY ID  */
 export const getPatientById = async (req, res) => {
     try {
         const { diagnosisId } = req.params;

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:frontend/screens/patient_list.dart';
 import 'package:frontend/services/secure_storage.dart';
 import 'package:frontend/screens/filter_chip_widget.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class DoctorHomeListPage extends StatefulWidget {
   const DoctorHomeListPage({super.key});
@@ -13,17 +14,18 @@ class DoctorHomeListPage extends StatefulWidget {
   State<DoctorHomeListPage> createState() => _DoctorHomeListPageState();
 }
 
-class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTickerProviderStateMixin {
+class _DoctorHomeListPageState extends State<DoctorHomeListPage>
+    with SingleTickerProviderStateMixin {
   bool _loading = true;
   String? _error;
   List<dynamic> _allPatients = [];
   List<dynamic> _filteredPatients = [];
-  
+
   // Filter states
   String? _selectedReviewFilter;
   String? _selectedDiagnosisFilter;
   String _searchQuery = '';
-  
+
   // Animation controller for filter panel
   late AnimationController _animationController;
   bool _isFilterExpanded = false;
@@ -31,16 +33,46 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
   // Filter options
   final List<Map<String, dynamic>> _reviewFilters = [
     {'value': null, 'label': 'All', 'icon': Icons.list},
-    {'value': 'pending', 'label': 'Pending Review', 'icon': Icons.pending_outlined, 'color': Colors.grey},
-    {'value': 'high', 'label': 'High Priority', 'icon': Icons.priority_high, 'color': Colors.red},
-    {'value': 'medium', 'label': 'Medium Priority', 'icon': Icons.remove, 'color': Colors.orange},
-    {'value': 'low', 'label': 'Low Priority', 'icon': Icons.low_priority, 'color': Colors.green},
+    {
+      'value': 'pending',
+      'label': 'Pending Review',
+      'icon': Icons.pending_outlined,
+      'color': Colors.grey,
+    },
+    {
+      'value': 'high',
+      'label': 'High Priority',
+      'icon': Icons.priority_high,
+      'color': Colors.red,
+    },
+    {
+      'value': 'medium',
+      'label': 'Medium Priority',
+      'icon': Icons.remove,
+      'color': Colors.orange,
+    },
+    {
+      'value': 'low',
+      'label': 'Low Priority',
+      'icon': Icons.low_priority,
+      'color': Colors.green,
+    },
   ];
 
   final List<Map<String, dynamic>> _diagnosisFilters = [
     {'value': null, 'label': 'All Results', 'icon': Icons.medical_services},
-    {'value': 'LEPROSY', 'label': 'Leprosy', 'icon': Icons.warning, 'color': Colors.red},
-    {'value': 'NOT LEPROSY', 'label': 'Not Leprosy', 'icon': Icons.check_circle, 'color': Colors.green},
+    {
+      'value': 'LEPROSY',
+      'label': 'Leprosy',
+      'icon': Icons.warning,
+      'color': Colors.red,
+    },
+    {
+      'value': 'NOT LEPROSY',
+      'label': 'Not Leprosy',
+      'icon': Icons.check_circle,
+      'color': Colors.green,
+    },
   ];
 
   @override
@@ -50,7 +82,31 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    requestPermission();
+    getToken();
+    setupForegroundListener();
     _fetchPatients();
+  }
+
+  void requestPermission() async {
+    NotificationSettings settings = await FirebaseMessaging.instance
+        .requestPermission();
+
+    print('Permission: ${settings.authorizationStatus}');
+  }
+
+  void getToken() async {
+    String? token = await FirebaseMessaging.instance.getToken();
+
+    print("DEVICE TOKEN: $token");
+  }
+
+  void setupForegroundListener() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print(
+        "Notification received (foreground): ${message.notification?.title}",
+      );
+    });
   }
 
   @override
@@ -112,7 +168,7 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
         // Apply review filter
         if (_selectedReviewFilter != null) {
           if (_selectedReviewFilter == 'pending') {
-            if (patient["doctor_review"] != null && 
+            if (patient["doctor_review"] != null &&
                 patient["doctor_review"].toString().isNotEmpty) {
               return false;
             }
@@ -124,7 +180,7 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
         }
 
         // Apply diagnosis filter
-        if (_selectedDiagnosisFilter != null && 
+        if (_selectedDiagnosisFilter != null &&
             patient["diagnosis_result"] != _selectedDiagnosisFilter) {
           return false;
         }
@@ -134,7 +190,7 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
           final name = patient["full_name"]?.toString().toLowerCase() ?? '';
           final symptoms = patient["symptoms"]?.toString().toLowerCase() ?? '';
           final query = _searchQuery.toLowerCase();
-          
+
           if (!name.contains(query) && !symptoms.contains(query)) {
             return false;
           }
@@ -308,10 +364,13 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
                               label: filter['label'],
                               icon: filter['icon'],
                               color: filter['color'] ?? const Color(0xff0EA5A4),
-                              isSelected: _selectedReviewFilter == filter['value'],
+                              isSelected:
+                                  _selectedReviewFilter == filter['value'],
                               onSelected: (selected) {
                                 setState(() {
-                                  _selectedReviewFilter = selected ? filter['value'] : null;
+                                  _selectedReviewFilter = selected
+                                      ? filter['value']
+                                      : null;
                                   _applyFilters();
                                 });
                               },
@@ -339,10 +398,13 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
                               label: filter['label'],
                               icon: filter['icon'],
                               color: filter['color'] ?? const Color(0xff0EA5A4),
-                              isSelected: _selectedDiagnosisFilter == filter['value'],
+                              isSelected:
+                                  _selectedDiagnosisFilter == filter['value'],
                               onSelected: (selected) {
                                 setState(() {
-                                  _selectedDiagnosisFilter = selected ? filter['value'] : null;
+                                  _selectedDiagnosisFilter = selected
+                                      ? filter['value']
+                                      : null;
                                   _applyFilters();
                                 });
                               },
@@ -398,9 +460,7 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
           ),
 
           // Patient List
-          Expanded(
-            child: _buildBody(),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
     );
@@ -441,14 +501,12 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.search_off,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              _searchQuery.isNotEmpty || _selectedReviewFilter != null || _selectedDiagnosisFilter != null
+              _searchQuery.isNotEmpty ||
+                      _selectedReviewFilter != null ||
+                      _selectedDiagnosisFilter != null
                   ? "No patients match your filters"
                   : "No patient diagnoses available.",
               style: const TextStyle(color: Color(0xff64748B), fontSize: 16),
@@ -481,17 +539,22 @@ class _DoctorHomeListPageState extends State<DoctorHomeListPage> with SingleTick
                   "doctor_details",
                   arguments: _filteredPatients[index],
                 );
-                
+
                 // If we got updated data back, update the list
-                if (updatedPatient != null && updatedPatient is Map<String, dynamic>) {
-                  print("Received updated patient with review: ${updatedPatient['doctor_review']}");
-                  
+                if (updatedPatient != null &&
+                    updatedPatient is Map<String, dynamic>) {
+                  print(
+                    "Received updated patient with review: ${updatedPatient['doctor_review']}",
+                  );
+
                   // Update in all patients list
-                  final allIndex = _allPatients.indexWhere((p) => p['id'] == updatedPatient['id']);
+                  final allIndex = _allPatients.indexWhere(
+                    (p) => p['id'] == updatedPatient['id'],
+                  );
                   if (allIndex != -1) {
                     _allPatients[allIndex] = updatedPatient;
                   }
-                  
+
                   // Re-apply filters to update filtered list
                   _applyFilters();
                 } else {

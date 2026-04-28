@@ -60,12 +60,18 @@ dependencies:
 
 dev_dependencies:
 
+  flutter_launcher_icons: ^0.13.1
   hive_generator: ^2.0.1
   build_runner: ^2.4.8
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -84,8 +90,8 @@ flutter:
   #   - images/a_dot_ham.jpeg
 
   assets:
-      - assets/images/login.png
-      - assets/images/register.png
+    - assets/images/login.png
+    - assets/images/register.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

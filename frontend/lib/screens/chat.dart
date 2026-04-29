@@ -41,6 +41,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   bool _isSyncing = false;
   final ScrollController _scrollController = ScrollController();
   bool _hasText = false;
+  bool _isConnected = true;
 
   // ── Animation for new messages ─────────────────────────────────────────────
   final Map<String, AnimationController> _messageControllers = {};
@@ -50,6 +51,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     super.initState();
     loadChats();
     listenToInternet();
+    _checkInitialConnectivity();
     _controller.addListener(() {
       setState(() => _hasText = _controller.text.trim().isNotEmpty);
     });
@@ -72,10 +74,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   // ══════════════════════════════════════════════════════════════════════════════
 
   void listenToInternet() {
-    _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
-      if (result != ConnectivityResult.none) syncPendingMessages();
-    });
-  }
+  _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
+    if (mounted) setState(() => _isConnected = result != ConnectivityResult.none);
+    if (result != ConnectivityResult.none) syncPendingMessages();
+  });
+}
 
   void loadChats() {
     final cachedChats = CacheService.getAllMessages();
@@ -92,6 +95,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       );
     }
   }
+
+  Future<void> _checkInitialConnectivity() async {
+  final result = await Connectivity().checkConnectivity();
+  if (mounted) setState(() => _isConnected = result != ConnectivityResult.none);
+}
 
   Future<void> syncPendingMessages() async {
     if (_isSyncing) return;
@@ -335,36 +343,29 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   // ── Offline Banner ────────────────────────────────────────────────────────────
   Widget _buildOfflineBanner() {
-    return StreamBuilder<ConnectivityResult>(
-      stream: Connectivity().onConnectivityChanged,
-      initialData: ConnectivityResult.none,
-      builder: (context, snapshot) {
-        final isConnected = snapshot.data != ConnectivityResult.none;
-        if (isConnected) return const SizedBox.shrink();
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: _offlineBg,
-          child: Row(
-            children: [
-              const Icon(Icons.wifi_off_rounded, size: 15, color: _offlineText),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'You\'re offline — messages will send when reconnected',
-                  style: TextStyle(
-                    color: _offlineText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
+  if (_isConnected) return const SizedBox.shrink();
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    color: _offlineBg,
+    child: const Row(
+      children: [
+        Icon(Icons.wifi_off_rounded, size: 15, color: _offlineText),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'You\'re offline — messages will send when reconnected',
+            style: TextStyle(
+              color: _offlineText,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   // ── Message List ──────────────────────────────────────────────────────────────
   Widget _buildMessageList() {

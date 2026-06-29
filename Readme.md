@@ -121,7 +121,36 @@ The result is a scalable solution for early disease detection and improved healt
 ---
 
 ## 👨‍💻 Contributors
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Aryan-Ghadekar">
+        <img src="https://github.com/Aryan-Ghadekar.png?size=100" width="100px; alt=""/>
+        <br />
+        <sub><b>Aryan Ghadekar</b></sub>
+      </a>
+      <br />
+    </td>
+    <td align="center">
+      <a href="https://github.com/pruthviraj-cpu">
+        <img src="https://github.com/pruthviraj-cpu.png?size=100" width="100px; alt=""/>
+        <br />
+        <sub><b>Pruthviraj Gawande</b></sub>
+      </a>
+      <br />
+    </td>
+    <td align="center">
+      <a href="https://github.com/pranav-gawande1">
+        <img src="https://github.com/pranav-gawande1.png?size=100" width="100px; alt=""/>
+        <br />
+        <sub><b>Pranav Gawande</b></sub>
+      </a>
+      <br />
+    </td>
+  </tr>
+</table>
 
 Contributions, suggestions, and improvements are welcome.
+For Contrbutions please firstly read the contributing.md file.
 
 If you find this project useful, consider giving it a ⭐ on GitHub.

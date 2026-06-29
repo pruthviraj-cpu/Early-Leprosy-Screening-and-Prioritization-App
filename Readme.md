@@ -122,6 +122,9 @@ The result is a scalable solution for early disease detection and improved healt
 
 ## 👨‍💻 Contributors
 
+- [Aryan Ghadekar](https://github.com/Aryan-Ghadekar)
+- [Pruthviraj Gawande](https://github.com/pruthviraj-cpu)
+- [Pranav Gawande](https://github.com/pranav-gawande1)
 Contributions, suggestions, and improvements are welcome.
 
 If you find this project useful, consider giving it a ⭐ on GitHub.

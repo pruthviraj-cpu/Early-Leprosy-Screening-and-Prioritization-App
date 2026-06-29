@@ -1,176 +1,127 @@
-# Skin Buddy
+# SkinBuddy - Leprosy Detection & Screening Platform
 
-Skin Buddy is a full-stack AI-powered application built using Flutter for the frontend, Node.js with Express for the backend, and Supabase for database, authentication, and storage.  
-The app follows an offline-first approach with caching for AI chats, forms, images, and user session data.
-
----
-
-## Tech Stack
-
-Frontend:
-- Flutter
-- Hive (local NoSQL cache)
-- Flutter Secure Storage
-- Dio / HTTP
-
-Backend:
-- Node.js
-- Express.js
-- Supabase SDK
-
-Database & Cloud:
-- Supabase (PostgreSQL, Auth, Storage)
+An AI-powered healthcare platform designed to assist **ASHA Workers** and **Doctors** in the early detection and review of leprosy cases. The system combines machine learning, telemedicine workflows, and intelligent case management to improve access to healthcare in remote and underserved areas.
 
 ---
 
-## Project Structure
+## 📌 Overview
 
-Skin_buddy/
-├── frontend/
-├── backend/
-├── .gitignore
-└── README.md
+Leprosy remains a public health concern in several regions, where early detection is crucial for preventing disability and reducing disease transmission. This platform enables frontline healthcare workers (ASHA Workers) to capture patient information and upload images of suspected skin lesions for AI-assisted screening.
+
+The uploaded cases are automatically analyzed by a machine learning model and forwarded to registered doctors for expert review and confirmation.
 
 ---
 
-## Prerequisites
+## 🚀 Key Features
 
-Install the following before starting:
+### 👩‍⚕️ ASHA Worker Module
 
-Git  
-https://git-scm.com/downloads
+* Secure login and profile management
+* Patient registration and data collection
+* Upload images of suspected leprosy-affected body parts
+* AI-based probability prediction for leprosy detection
+* View submitted cases and prediction results
+* Access educational resources about leprosy
+* Integrated healthcare chatbot for guidance and assistance
 
-Flutter  
-https://docs.flutter.dev/get-started/install
+### 🧑‍⚕️ Doctor Module
 
-Node.js (LTS)  
-https://nodejs.org
+* Secure login and profile management
+* Review pending patient cases
+* View patient details and uploaded images
+* Access AI-generated prediction results
+* Approve, reject, or modify diagnosis decisions
+* Manage reviewed and pending cases efficiently
 
-Verify installations:
+### 🤖 AI-Powered Detection
 
-git --version  
-flutter --version  
-node --version  
-npm --version  
+* Machine Learning model trained for leprosy image classification
+* Automated prediction generation upon image upload
+* Provides probability scores to assist healthcare workers
+* Supports doctors in making informed final decisions
 
----
+### 📧 Notification System
 
-## Clone Repository
+* Automatic email notifications sent to registered doctors
+* Alerts doctors about pending review cases
+* Helps reduce review delays and improve response times
 
-git clone https://github.com/pruthviraj-cpu/Skin_buddy.git  
-cd Skin_buddy
+### 💬 Healthcare Chatbot
 
----
+* Available in the ASHA Worker module
+* Assists with common healthcare-related queries
+* Provides guidance regarding disease awareness and patient handling
 
-## Frontend Setup (Flutter)
+### 📚 Disease Awareness Portal
 
-cd frontend  
-flutter pub get  
+* Dedicated information page based on Government of India guidelines
+* Educational content about:
 
-Run the app:
-
-flutter run
-
----
-
-## Backend Setup (Node + Express)
-
-cd backend  
-npm install  
-
-Create environment file:
-
-touch .env
-
-Add this inside `.env`:
-
-PORT=5000  
-SUPABASE_URL=your_supabase_project_url  
-SUPABASE_SERVICE_KEY=your_supabase_service_key  
-AI_API_KEY=your_ai_api_key  
-
-Start server:
-
-npm run dev  
-
-Backend will run on:
-
-http://localhost:5000
+  * What is Leprosy
+  * Symptoms
+  * Causes
+  * Prevention
+  * Treatment options
+  * Government healthcare initiatives
 
 ---
 
-## Supabase Setup
+## 🔄 Workflow
 
-1. Go to https://supabase.com  
-2. Create a new project  
-3. Copy Project URL and Service Role Key  
-4. Paste them into backend `.env`  
+1. ASHA Worker registers a patient.
+2. Patient information and lesion images are uploaded.
+3. Machine Learning model analyzes the image.
+4. AI prediction score is displayed to the ASHA Worker.
+5. Case is forwarded to registered doctors.
+6. Doctors receive email notifications about pending reviews.
+7. Doctor reviews the case and image.
+8. Doctor confirms or modifies the diagnosis.
+9. Final decision is recorded in the system.
 
----
+## 🎯 Objectives
 
-## Caching Strategy (Offline First)
-
-Login Session:
-- Stored using Flutter Secure Storage
-- User stays logged in without re-authentication
-
-AI Chat:
-- Latest chats stored in Hive
-- Cached chats shown instantly when offline
-- When internet is available, missing chats are fetched from Supabase and merged
-
-Forms & Images:
-- Form data stored in Hive
-- Images stored locally until upload succeeds
-- Synced automatically when internet is available
-
-Location Data:
-- Cached locally
-- Updated periodically when online
+* Enable early detection of leprosy.
+* Assist frontline healthcare workers with AI tools.
+* Reduce diagnostic delays through digital workflows.
+* Improve collaboration between ASHA Workers and doctors.
+* Increase disease awareness in communities.
+* Support healthcare digitization initiatives.
 
 ---
 
-## Git Ignore Rules
+## 🔐 User Roles
 
-The following files and folders are ignored:
-
-node_modules/  
-.env  
-build/  
-.dart_tool/  
-.flutter-plugins  
-.flutter-plugins-dependencies  
-.idea/  
-.vscode/  
-.DS_Store  
+| Role        | Responsibilities                                                |
+| ----------- | --------------------------------------------------------------- |
+| ASHA Worker | Patient registration, image upload, AI screening, chatbot usage |
+| Doctor      | Case review, diagnosis verification, final decision making      |
 
 ---
 
-## Push Code to GitHub
+## 🌟 Impact
 
-git add .  
-git commit -m "Initial project setup"  
-git branch -M main  
-git remote add origin https://github.com/pruthviraj-cpu/Skin_buddy.git  
-git push -u origin main  
+This platform bridges the gap between frontline healthcare workers and medical professionals by combining:
 
----
+* Artificial Intelligence
+* Telemedicine
+* Automated Notifications
+* Healthcare Education
 
-## Common Fixes
-
-If `.env` was committed accidentally:
-
-git rm --cached .env  
-git commit -m "Remove env file from repo"  
+The result is a scalable solution for early disease detection and improved healthcare accessibility in remote regions.
 
 ---
 
-## Future Enhancements
+## 🔮 Future Enhancements
 
-- On-device ML model integration
-- Background sync
-- Push notifications
-- Analytics dashboard
-
+* Multi-language support
+* Real-time doctor notifications
+* Analytics dashboard
+* Advanced AI models with higher accuracy
+* Integration with government healthcare systems
 ---
 
+## 👨‍💻 Contributors
+
+Contributions, suggestions, and improvements are welcome.
+
+If you find this project useful, consider giving it a ⭐ on GitHub.

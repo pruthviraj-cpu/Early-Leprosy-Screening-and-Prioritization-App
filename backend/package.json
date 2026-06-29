@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "type": "module",
   "dependencies": {
     "@supabase/supabase-js": "^2.91.0",
     "axios": "^1.13.2",

@@ -1,0 +1,31 @@
+# Dependencies (Docker will install its own inside the container)
+node_modules/
+npm-debug.log
+
+# Environment variables and secrets (CRITICAL for security)
+.env
+.env.*
+*.pem
+*.key
+
+# Version control
+.git/
+.gitignore
+
+# IDEs and editor configurations
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build logs and test coverage
+logs/
+*.log
+coverage/

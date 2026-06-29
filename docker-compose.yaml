@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skin-buddy-backend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    networks:
+      - skin-buddy-network
+    
+networks:
+  skin-buddy-network:
+    driver: bridge
+
+volumes:
+  skin-buddy-data:

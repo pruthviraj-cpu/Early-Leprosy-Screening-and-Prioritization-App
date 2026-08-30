@@ -1,4 +1,4 @@
-# SkinBuddy - Leprosy Detection & Screening Platform
+# SkinBuddy - Leprosy Detection & Screening Application
 
 An AI-powered healthcare platform designed to assist **ASHA Workers** and **Doctors** in the early detection and review of leprosy cases. The system combines machine learning, telemedicine workflows, and intelligent case management to improve access to healthcare in remote and underserved areas.
 
